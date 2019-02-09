@@ -4,6 +4,8 @@ WORKDIR=/usr/share/eclosion
 ZPOOL_NAME="zfsforninja"
 ROOT=/mnt/root
 ZPOOL_IMPORT_PATH="/dev/disk/by-id"
+
+# TODO get LUKS from cmdline
 LUKS="no"
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
@@ -65,7 +67,7 @@ mv busybox bin/
 
 # ZFS bins
 bins="zfs zpool mount.zfs zdb fsck.zfs"
-module="zfs zavl zunicode icp zcommon znvpair spl"
+modules="zfs zavl zunicode icp zcommon znvpair spl"
 
 dobin() {
   local lib bin
@@ -77,11 +79,34 @@ dobin() {
   done
 }
 
+domod() {
+  # TODO get kv from cmdline
+  local kv=4.14.83-gentoo
+  local m mod=$1 modules lib_dir=/lib/modules/${kv}
+
+  for mod; do
+    modules="$(sed -nre "s/(${mod}(|[_-]).*$)/\1/p" ${lib_dir}/modules.dep)"
+    if [ -n "${modules}" ]; then
+      for m in ${modules}; do
+        m="${m%:}"
+        echo "[+] Copying module $m ..."
+        mkdir -p .${lib_dir}/${m%/*} && cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
+      done
+    else
+      echo "[-] ${mod} kernel module not found"
+      exit 1
+    fi
+  done
+}
+
 for bin in $bins ; do
   dobin $bin
 done
 
-# TODO: copy binary and modules
+for mod in $modules ; do
+  domod $mod
+done
+
 # TODO: install keymap for future use of gpg 
 # TODO: copy GCC deps libgcc_s.so.1
 
