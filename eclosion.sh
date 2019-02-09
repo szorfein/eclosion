@@ -10,7 +10,13 @@ LUKS="no"
 cd $WORKDIR
 
 # Directory structure
-mkdir -p {bin,dev,etc,lib,lib64,mnt/root,proc,root,sbin,sys}
+mkdir -p bin dev etc lib64 mnt/root proc root sbin sys
+if [[ -s /lib ]] ; then
+  [[ ! -s lib ]] && ln -s lib64 lib
+else
+  mkdir lib
+fi
+
 # Device nodes
 cp -a /dev/{null,console,tty} dev/
 
@@ -34,7 +40,7 @@ if [ ! -x $BUSYBOX_BIN ] ; then
   (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $BUSYBOX_BIN)
   ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
 elif ldd $BUSYBOX_BIN >/dev/null ; then
-  echo "busybox is not static"
+  echo "[-] Busybox is not static"
   exit 1
 else
   echo "[+] Busybox found"
@@ -55,20 +61,25 @@ rm bin/busybox
 mv busybox bin/
 
 #######################################################
-# Gnupg
-
-if [ ! -f $WORKDIR/bin/gnupg ] && [[ $LUKS == "yes" ]] ; then
-  PKG=app-crypt/gnupg
-  GPG_EBUILD=$(ls /usr/portage/$PKG | head -n 1)
-  USE="nls static" ebuild /usr/portage/$PKG/$GPG_EBUILD clean unpack compile
-  (cp -a /var/tmp/portage/${PKG%/*}/${GPG_EBUILD%.*}/work/${GPG_EBUILD%.*}/g10/gpg $WORKDIR/bin)
-  (cp -a /var/tmp/portage/${PKG%/*}/${GPG_EBUILD%.*}/work/${GPG_EBUILD%.*}/g10/options.skel $WORKDIR/share/gnupg/)
-  ebuild /usr/portage/$PKG/$GPG_EBUILD clean
-fi
+# ZFS
 
 # ZFS bins
-zfs_bin="zfs zpool mount.zfs zdb fsck.zfs"
+bins="zfs zpool mount.zfs zdb fsck.zfs"
 module="zfs zavl zunicode icp zcommon znvpair spl"
+
+dobin() {
+  local lib bin
+  bin=$(which $1)
+  cp -a $bin .$bin
+  for lib in $(ldd $bin | sed -nre 's,.* (/.*lib.*/.*.so.*) .*,\1,p' -e 's,.*(/lib.*/ld.*.so.*) .*,\1,p') ; do
+    echo "[+] Copying lib $lib to .$lib ..."
+    cp -a $lib .$lib
+  done
+}
+
+for bin in $bins ; do
+  dobin $bin
+done
 
 # TODO: copy binary and modules
 # TODO: install keymap for future use of gpg 
@@ -95,6 +106,9 @@ clear
 mknod /dev/null c 1 3
 mknod /dev/tty c 5 0
 mdev -s
+
+# load module
+modprobe zfs
 
 # decrypt
 
