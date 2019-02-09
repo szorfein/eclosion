@@ -1,6 +1,6 @@
 #!/bin/sh
 
-WORKDIR=/usr/share/eclosion
+WORKDIR=/tmp/eclosion
 ZPOOL_NAME="zfsforninja"
 ROOT=/mnt/root
 ZPOOL_IMPORT_PATH="/dev/disk/by-id"
@@ -69,7 +69,7 @@ mv busybox bin/
 bins="zfs zpool mount.zfs zdb fsck.zfs"
 modules="zfs zavl zunicode icp zcommon znvpair spl"
 
-dobin() {
+doBin() {
   local lib bin
   bin=$(which $1)
   cp -a $bin .$bin
@@ -79,7 +79,7 @@ dobin() {
   done
 }
 
-domod() {
+doMod() {
   # TODO get kv from cmdline
   local kv=4.14.83-gentoo
   local m mod=$1 modules lib_dir=/lib/modules/${kv}
@@ -100,11 +100,11 @@ domod() {
 }
 
 for bin in $bins ; do
-  dobin $bin
+  doBin $bin
 done
 
 for mod in $modules ; do
-  domod $mod
+  doMod $mod
 done
 
 # TODO: install keymap for future use of gpg 
@@ -130,6 +130,10 @@ clear
 # Create device nodes
 mknod /dev/null c 1 3
 mknod /dev/tty c 5 0
+
+# Add mdev (for use disk by UUID,LABEL, etc...)
+# ref: https://wiki.gentoo.org/wiki/Custom_Initramfs
+echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s
 
 # load module
@@ -151,6 +155,8 @@ EOF
 chmod u+x init
 
 # Create the initramfs
-#find . -print0 | cpio --null -ov --format=newc | gzip -9 > /boot/eclosion-initramfs.img
+find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
+
+echo "[+] initramfs created at $WORKDIR/../eclosion-initramfs.img"
 
 exit 0
