@@ -146,28 +146,44 @@ rescueShell() {
   exec /bin/sh
 }
 
-# mount 
-mount -t proc none /proc
-mount -t sysfs none /sys
+mkdir -p dev/pts proc run sys $ROOT
 
-# Disable kernel log
-echo 0 > /proc/sys/kernel/printk
-clear
+# mount for mdev 
+# https://git.busybox.net/busybox/plain/docs/mdev.txt
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys
+
+if grep -q devtmpfs /proc/filesystems; then
+  mount -t devtmpfs devtmpfs /dev
+else
+  mount -t tmpfs -o exec,mode=755 tmpfs /dev
+fi
 
 # Add mdev (for use disk by UUID,LABEL, etc...)
 # ref: https://wiki.gentoo.org/wiki/Custom_Initramfs
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s
 
+mount -t tmpfs -o mode=755,size=1% tmpfs /run
+
+# Disable kernel log
+echo 0 > /proc/sys/kernel/printk
+clear
+
 # Load modules
 for m in $MODULES ; do
   modprobe $m
 done
 
+echo $$ >/run/${0##*/}.pid
+modprobe zfs
+
 # decrypt
 
 # mount
 zpool import -R $ROOT $ZPOOL_NAME
+
+rm /run/${0##*/}.pid
 
 # cleanup
 umount /proc
