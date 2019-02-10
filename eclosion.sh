@@ -108,7 +108,18 @@ for mod in $modules ; do
 done
 
 # TODO: install keymap for future use of gpg 
-# TODO: copy GCC deps libgcc_s.so.1
+
+# Handle GCC libgcc_s.so
+searchLib=$(find /usr/lib* -type f | grep libgcc_s.so)
+if [[ -n $searchLib ]] ; then
+  for l in $searchLib ; do
+    mkdir -p .${l%/*}
+    cp -a ${l} .${l}
+  done
+else
+  echo "[-] libgcc_s.so no found on the system..."
+  exit 1
+fi
 
 # Create the init
 cat > init << EOF
@@ -116,6 +127,7 @@ cat > init << EOF
 
 # TODO: Later from /proc/cmdline
 INIT=/lib/systemd/systemd
+MODULES="$modules"
 ZPOOL_NAME=$ZPOOL_NAME
 export ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -123,21 +135,20 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 # mount 
 mount -t proc none /proc
 mount -t sysfs none /sys
+
 # Disable kernel log
 echo 0 > /proc/sys/kernel/printk
 clear
-
-# Create device nodes
-mknod /dev/null c 1 3
-mknod /dev/tty c 5 0
 
 # Add mdev (for use disk by UUID,LABEL, etc...)
 # ref: https://wiki.gentoo.org/wiki/Custom_Initramfs
 echo /sbin/mdev > /proc/sys/kernel/hotplug
 mdev -s
 
-# load module
-modprobe zfs
+# Load modules
+for m in $MODULES ; do
+  modprobe $m
+done
 
 # decrypt
 
