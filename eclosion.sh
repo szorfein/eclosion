@@ -86,11 +86,11 @@ doBin() {
     if [ -h $lib ] ; then
       link=$(readlink $lib)
       echo "Found a link $lib == ${lib%/*}/$link"
-      echo "cp -a $lib .$lib"
-      echo "cp -a ${lib%/*}/$link .${lib%/*}/$link"
+      cp -a $lib .$lib
+      cp -a ${lib%/*}/$link .${lib%/*}/$link
     elif [ -x $lib ] ; then
       echo "Found binary $lib"
-      echo "cp -a $lib .$lib"
+      cp -a $lib .$lib
     fi
   done
 }
