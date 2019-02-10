@@ -3,12 +3,12 @@
 ECLODIR=$(pwd)
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
-ZPOOL_NAME="zfsforninja"
+ZPOOL_NAME=zfsforninja
 ROOT=/mnt/root
-ZPOOL_IMPORT_PATH="/dev/disk/by-id"
+ZPOOL_IMPORT_PATH=/dev/disk/by-id
 
+# TODO get kv LUKS from cmdline
 kv=4.14.83-gentoo
-# TODO get LUKS from cmdline
 LUKS="no"
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
@@ -57,15 +57,18 @@ BUSY_BIN=$(type -p $BUSYBOX_BIN)
 BUSY_APPS=/tmp/busybox-apps
 $BUSY_BIN --list-full > $BUSY_APPS
 
-mv bin/busybox . && rm -rf bin/* && rm -rf sbin/*
+# To avoid busybox create a symbolic link of busybox
+mv bin/busybox .
+
 for bin in $(grep -e '^bin/[a-z]' $BUSY_APPS) ; do
   ln -s busybox $bin 
 done
 for sbin in $(grep -e '^sbin/[a-z]' $BUSY_APPS) ; do
   ln -s ../bin/busybox $sbin
 done
-rm bin/busybox
-mv busybox bin/
+
+# Remove the symbolink link and place busybox static
+rm bin/busybox && mv busybox bin/
 
 #######################################################
 # ZFS
@@ -76,25 +79,21 @@ modules="zfs zavl zunicode icp zcommon znvpair spl"
 
 doBin() {
   local lib bin link
-  bin=$(which $1)
+  bin=$(which $1 2>/dev/null)
+  [[ $? -ne 0 ]] && bin=$1
   for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
     echo "[+] Copying lib $lib to .$lib ..."
     if [ -h $lib ] ; then
       link=$(readlink $lib)
       echo "Found a link $lib == ${lib%/*}/$link"
-      cp -a $lib .$lib
-      cp -a ${lib%/*}/$link .${lib%/*}/$link
+      echo "cp -a $lib .$lib"
+      echo "cp -a ${lib%/*}/$link .${lib%/*}/$link"
     elif [ -x $lib ] ; then
       echo "Found binary $lib"
-      cp -a $lib .$lib
-    else
-      echo "LIB NO FOUND or NO VALID"
-      exit 1
+      echo "cp -a $lib .$lib"
     fi
   done
 }
-
-doBin zpool
 
 doMod() {
   # TODO get kv from cmdline
@@ -126,14 +125,11 @@ done
 # TODO: install keymap for future use of gpg 
 
 # Handle GCC libgcc_s.so
-searchLib=$(find /usr/lib* -type f | grep libgcc_s.so)
-if [[ -n $searchLib ]] ; then
-  for l in $searchLib ; do
-    mkdir -p .${l%/*}
-    cp -a ${l} .${l}
-  done
+search_lib=$(find /usr/lib* -type f | grep libgcc_s.so.1 | head -n 1)
+if [[ -n $search_lib ]] ; then
+  mkdir -p .${search_lib%/*} && doBin $search_lib
 else
-  echo "[-] libgcc_s.so no found on the system..."
+  echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
 fi
 
