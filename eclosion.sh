@@ -1,5 +1,7 @@
 #!/bin/sh
 
+ECLODIR=$(pwd)
+ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ZPOOL_NAME="zfsforninja"
 ROOT=/mnt/root
@@ -9,6 +11,7 @@ ZPOOL_IMPORT_PATH="/dev/disk/by-id"
 LUKS="no"
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
+[[ ! -d $ECLODIR_STATIC ]] && mkdir -p $ECLODIR_STATIC
 cd $WORKDIR
 
 # Directory structure
@@ -34,20 +37,21 @@ source /etc/portage/make.conf
 # Busybox
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
-if [ ! -x $BUSYBOX_BIN ] ; then
+if [ ! -x $ECLODIR_STATIC/busybox ] ; then
   echo "[+] Install busybox"
   PKG=sys-apps/busybox
   BUSYBOX_EBUILD=$(ls /usr/portage/$PKG | head -n 1)
   USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
-  (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $BUSYBOX_BIN)
+  (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
   ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
-elif ldd $BUSYBOX_BIN >/dev/null ; then
+elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then
   echo "[-] Busybox is not static"
   exit 1
 else
   echo "[+] Busybox found"
 fi
 
+cp -a $ECLODIR_STATIC/busybox $BUSYBOX_BIN
 BUSY_BIN=$(type -p $BUSYBOX_BIN)
 BUSY_APPS=/tmp/busybox-apps
 $BUSY_BIN --list-full > $BUSY_APPS
@@ -177,6 +181,8 @@ chmod u+x init
 # Create the initramfs
 find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
 
-echo "[+] initramfs created at $WORKDIR/../eclosion-initramfs.img"
+cd ..
+echo "[+] initramfs created at $(pwd)/eclosion-initramfs.img"
+rm -rf $WORKDIR
 
 exit 0
