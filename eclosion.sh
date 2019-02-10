@@ -132,6 +132,11 @@ ZPOOL_NAME=$ZPOOL_NAME
 export ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
+rescueShell() {
+  echo "Something went wrong. Dropping you to a shell."
+  exec /bin/sh
+}
+
 # mount 
 mount -t proc none /proc
 mount -t sysfs none /sys
@@ -161,6 +166,10 @@ umount /sys
 
 # switch
 exec switch_root $ROOT "${INIT}"
+
+# If the switch has fail
+rescueShell
+
 EOF
 
 chmod u+x init
