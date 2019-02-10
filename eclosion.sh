@@ -7,6 +7,7 @@ ZPOOL_NAME="zfsforninja"
 ROOT=/mnt/root
 ZPOOL_IMPORT_PATH="/dev/disk/by-id"
 
+kv=4.14.83-gentoo
 # TODO get LUKS from cmdline
 LUKS="no"
 
@@ -85,7 +86,6 @@ doBin() {
 
 doMod() {
   # TODO get kv from cmdline
-  local kv=4.14.83-gentoo
   local m mod=$1 modules lib_dir=/lib/modules/${kv}
 
   for mod; do
@@ -125,12 +125,17 @@ else
   exit 1
 fi
 
+# Add kernel modules
+cp /lib/modules/$kv/modules.{builtin,order} ./lib/modules/$kv
+depmod -b . $kv
+
 # Create the init
 cat > init << EOF
 #!/bin/sh
 
 # TODO: Later from /proc/cmdline
 INIT=/lib/systemd/systemd
+ROOT=$ROOT
 MODULES="$modules"
 ZPOOL_NAME=$ZPOOL_NAME
 export ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
@@ -183,6 +188,6 @@ find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs
 
 cd ..
 echo "[+] initramfs created at $(pwd)/eclosion-initramfs.img"
-rm -rf $WORKDIR
+#rm -rf $WORKDIR
 
 exit 0
