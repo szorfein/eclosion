@@ -190,15 +190,21 @@ modprobe zfs
 
 # mount
 zpool import -R $ROOT $ZPOOL_NAME
+if [ $? -eq 0 ] ; then
+  echo "[+] $ZPOOL_NAME has been imported at $ROOT"
+else
+  rescueShell
+fi
 
 rm /run/${0##*/}.pid
 
 # cleanup
 umount /proc
 umount /sys
+umount /dev
 
 # switch
-exec switch_root $ROOT "${INIT}"
+exec switch_root /mnt/root ${INIT}
 
 # If the switch has fail
 rescueShell
