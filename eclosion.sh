@@ -75,14 +75,26 @@ bins="zfs zpool mount.zfs zdb fsck.zfs"
 modules="zfs zavl zunicode icp zcommon znvpair spl"
 
 doBin() {
-  local lib bin
+  local lib bin link
   bin=$(which $1)
-  cp -a $bin .$bin
-  for lib in $(ldd $bin | sed -nre 's,.* (/.*lib.*/.*.so.*) .*,\1,p' -e 's,.*(/lib.*/ld.*.so.*) .*,\1,p') ; do
+  for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
     echo "[+] Copying lib $lib to .$lib ..."
-    cp -a $lib .$lib
+    if [ -h $lib ] ; then
+      link=$(readlink $lib)
+      echo "Found a link $lib == ${lib%/*}/$link"
+      cp -a $lib .$lib
+      cp -a ${lib%/*}/$link .${lib%/*}/$link
+    elif [ -x $lib ] ; then
+      echo "Found binary $lib"
+      cp -a $lib .$lib
+    else
+      echo "LIB NO FOUND or NO VALID"
+      exit 1
+    fi
   done
 }
+
+doBin zpool
 
 doMod() {
   # TODO get kv from cmdline
