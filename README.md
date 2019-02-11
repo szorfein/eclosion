@@ -9,3 +9,4 @@ Still under building | testing :)
 + https://github.com/tokiclover/mkinitramfs-ll
 + http://www.linuxfromscratch.org/blfs/view/svn/postlfs/initramfs.html
 + https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples
++ https://github.com/slashbeast/mdev-like-a-boss
