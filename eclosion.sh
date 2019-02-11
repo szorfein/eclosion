@@ -24,7 +24,7 @@ else
 fi
 
 # Device nodes
-cp -a /dev/{null,console,tty} dev/
+cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
 
 touch etc/mdev.conf
 if [[ $LUKS == "yes" ]] ; then
@@ -136,8 +136,7 @@ else
 fi
 
 # Add kernel modules
-cp /lib/modules/$kv/modules.{builtin,order} ./lib/modules/$kv
-depmod -b . $kv
+cp -a /lib/modules/$kv/modules.dep ./lib/modules/$kv/
 
 # Create the init
 cat > init << EOF
@@ -148,7 +147,7 @@ INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="zfs"
 ZPOOL_NAME=$ZPOOL_NAME
-export ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
+ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
@@ -187,15 +186,18 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 [ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
 # Load modules
-for m in $MODULES ; do
-  echo "[*] Loading $m"
-  modprobe $m
-done
+#for m in $MODULES ; do
+#  echo "[*] Loading $m"
+#  modprobe $m
+#done
 
 echo $$ >/run/${0##*/}.pid
-# modprobe zfs
+modprobe zfs
 
 # decrypt
+
+# fill ZPOOL_IMPORT_PATH
+export ZPOOL_IMPORT_PATH
 
 # mount
 zpool import -R $ROOT $ZPOOL_NAME
