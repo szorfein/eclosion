@@ -77,7 +77,7 @@ rm sbin/blkid
 # ZFS bins
 bins="blkid zfs zpool mount.zfs zdb fsck.zfs"
 # from /usr/share/initramfs-tools/hooks/zfs
-modules="zlib_deflate spl savl zcommon znvpair zunicode zfs icp"
+modules="zlib_deflate spl zavl zcommon znvpair zunicode zfs icp"
 
 doBin() {
   local lib bin link
@@ -129,7 +129,7 @@ done
 search_lib=$(find /usr/lib* -type f | grep libgcc_s.so.1 | head -n 1)
 if [[ -n $search_lib ]] ; then
   mkdir -p .${search_lib%/*} && doBin $search_lib
-  echo "mv .${search_lib} .lib64/ && rm -rf .${search_lib%/*}"
+  echo "mv .${search_lib} ./usr/lib64/ && rm -rf ./usr/lib64/gcc"
 else
   echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
@@ -147,7 +147,6 @@ INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="zfs"
 ZPOOL_NAME=$ZPOOL_NAME
-ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
@@ -197,15 +196,24 @@ modprobe zfs
 # decrypt
 
 # fill ZPOOL_IMPORT_PATH
-export ZPOOL_IMPORT_PATH
+#ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
+#export ZPOOL_IMPORT_PATH
+
+echo "found dir: "
+ls /dev/disk/by-*
 
 # mount
-zpool import -R $ROOT $ZPOOL_NAME
-if [ $? -eq 0 ] ; then
-  echo "[+] $ZPOOL_NAME has been imported at $ROOT"
-else
-  rescueShell
-fi
+zpoolMount() {
+  local zfs_stderr zfs_error pool=$1
+  for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
+    [ ! -d $dir ] && continue
+    zfs_stderr=$(zpool import -d $dir -R $ROOT $pool 2>&1)
+    zfs_error=$?
+    [ "$zfs_error" == 0 ] && return 0
+  done
+}
+
+zpoolMount $ZPOOL_NAME
 
 zfs mount -a
 
