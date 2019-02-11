@@ -75,7 +75,8 @@ rm bin/busybox && mv busybox bin/
 
 # ZFS bins
 bins="zfs zpool mount.zfs zdb fsck.zfs"
-modules="zfs zavl zunicode icp zcommon znvpair spl"
+# from /usr/share/initramfs-tools/hooks/zfs
+modules="zlib_deflate spl savl zcommon znvpair zunicode zfs icp"
 
 doBin() {
   local lib bin link
@@ -151,8 +152,12 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
   echo "Something went wrong. Dropping you to a shell."
-  exec /bin/sh
+  exec /bin/sh -lim
 }
+
+# Disable kernel log
+echo 0 > /proc/sys/kernel/printk
+clear
 
 mkdir -p dev/pts proc run sys $ROOT
 
@@ -168,15 +173,17 @@ else
 fi
 
 # Add mdev (for use disk by UUID,LABEL, etc...)
-# ref: https://wiki.gentoo.org/wiki/Custom_Initramfs
-echo /sbin/mdev > /proc/sys/kernel/hotplug
+echo >/dev/mdev.seq
+[ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
+echo $MDEV > /proc/sys/kernel/hotplug
 mdev -s
 
 mount -t tmpfs -o mode=755,size=1% tmpfs /run
 
-# Disable kernel log
-echo 0 > /proc/sys/kernel/printk
-clear
+# zpool import refuse to import without a valid mtab
+# https://github.com/zfsonlinux/pkg-zfs/blob/snapshot/debian/wheezy/0.6.3-35-4c7b7e-wheezy/scripts/zfs-initramfs/scripts/zfs
+[ ! -f /proc/mounts ] && mount proc /proc
+[ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
 # Load modules
 for m in $MODULES ; do
@@ -196,6 +203,8 @@ else
   rescueShell
 fi
 
+zfs mount -a
+
 rm /run/${0##*/}.pid
 
 # cleanup
@@ -208,7 +217,6 @@ exec switch_root /mnt/root ${INIT}
 
 # If the switch has fail
 rescueShell
-
 EOF
 
 chmod u+x init
