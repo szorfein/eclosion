@@ -16,7 +16,7 @@ LUKS="no"
 cd $WORKDIR
 
 # Directory structure
-mkdir -p bin dev etc lib64 mnt/root proc root sbin sys
+mkdir -p bin dev etc lib64 mnt/root proc root sbin sys run
 if [[ -s /lib ]] ; then
   [[ ! -s lib ]] && ln -s lib64 lib
 else
@@ -26,7 +26,12 @@ fi
 # Device nodes
 cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
 
-touch etc/mdev.conf
+if [ -f /etc/mdev.conf ] ; then
+  cp /etc/mdev.conf etc/
+else
+  touch etc/mdev.conf
+fi
+
 if [[ $LUKS == "yes" ]] ; then
   mkdir -p share/gnupg
 fi
@@ -129,7 +134,9 @@ done
 search_lib=$(find /usr/lib* -type f | grep libgcc_s.so.1 | head -n 1)
 if [[ -n $search_lib ]] ; then
   mkdir -p .${search_lib%/*} && doBin $search_lib
-  echo "mv .${search_lib} ./usr/lib64/ && rm -rf ./usr/lib64/gcc"
+  cp ${search_lib} ./usr/lib64/
+  cd usr && ln -s lib64 lib && cd ..
+  rm -rf ./usr/lib64/gcc
 else
   echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
