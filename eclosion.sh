@@ -26,6 +26,8 @@ fi
 # Device nodes
 cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
 
+# mdef need /etc/group too
+cp -a /etc/group etc/group
 if [ -f /etc/mdev.conf ] ; then
   cp /etc/mdev.conf etc/
 else
@@ -152,7 +154,7 @@ cat > init << EOF
 # TODO: Later from /proc/cmdline
 INIT=/lib/systemd/systemd
 ROOT=$ROOT
-MODULES="zfs"
+MODULES="$modules"
 ZPOOL_NAME=$ZPOOL_NAME
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
@@ -192,10 +194,10 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 [ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
 # Load modules
-#for m in $MODULES ; do
-#  echo "[*] Loading $m"
-#  modprobe $m
-#done
+for m in $MODULES ; do
+  echo "[*] Loading $m"
+  modprobe -q $m
+done
 
 echo $$ >/run/${0##*/}.pid
 modprobe zfs
