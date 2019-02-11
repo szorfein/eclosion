@@ -67,14 +67,15 @@ for sbin in $(grep -e '^sbin/[a-z]' $BUSY_APPS) ; do
   ln -s ../bin/busybox $sbin
 done
 
-# Remove the symbolink link and place busybox static
+# Replace few link by program
 rm bin/busybox && mv busybox bin/
+rm sbin/blkid
 
 #######################################################
 # ZFS
 
 # ZFS bins
-bins="zfs zpool mount.zfs zdb fsck.zfs"
+bins="blkid zfs zpool mount.zfs zdb fsck.zfs"
 # from /usr/share/initramfs-tools/hooks/zfs
 modules="zlib_deflate spl savl zcommon znvpair zunicode zfs icp"
 
@@ -110,7 +111,6 @@ doMod() {
       done
     else
       echo "[-] ${mod} kernel module not found"
-      exit 1
     fi
   done
 }
@@ -129,6 +129,7 @@ done
 search_lib=$(find /usr/lib* -type f | grep libgcc_s.so.1 | head -n 1)
 if [[ -n $search_lib ]] ; then
   mkdir -p .${search_lib%/*} && doBin $search_lib
+  echo "mv .${search_lib} .lib64/ && rm -rf .${search_lib%/*}"
 else
   echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
@@ -145,7 +146,7 @@ cat > init << EOF
 # TODO: Later from /proc/cmdline
 INIT=/lib/systemd/systemd
 ROOT=$ROOT
-MODULES="$modules"
+MODULES="zfs"
 ZPOOL_NAME=$ZPOOL_NAME
 export ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
@@ -187,11 +188,12 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 
 # Load modules
 for m in $MODULES ; do
+  echo "[*] Loading $m"
   modprobe $m
 done
 
 echo $$ >/run/${0##*/}.pid
-modprobe zfs
+# modprobe zfs
 
 # decrypt
 
