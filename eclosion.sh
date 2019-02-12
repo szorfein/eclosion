@@ -55,9 +55,10 @@ ttyS[0-9]*	0:14 660
 ram([0-9]*)	0:6 660 >rd/%1
 loop([0-9]+)	0:6 660 >loop/%1
 sd[a-z].*	0:6 660 */lib/mdev/storage-device
-hd[a-z][0-9]*	0:6 660 */lib/mdev/storage-device
+hd[a-z].*	0:6 660 */lib/mdev/storage-device
 vd[a-z].* 0:6 660 */lib/mdev/storage-device
-md[0-9]* 0:6 660 */lib/mdev/storage-device
+dm-[0-9]* 0:6 660 */lib/mdev/storage-device
+bcache[0-9]* 0:6 660 */lib/mdev/storage-device
 
 fuse		0:0 666
 

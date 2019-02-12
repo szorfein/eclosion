@@ -11,3 +11,4 @@ Still under building | testing :)
 + https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples
 + https://github.com/slashbeast/mdev-like-a-boss
 + https://github.com/slashbeast/better-initramfs
++ https://github.com/zfsonlinux/zfs/tree/master/contrib/initramfs
