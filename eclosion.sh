@@ -16,11 +16,15 @@ LUKS="no"
 cd $WORKDIR
 
 # Directory structure
-mkdir -p bin dev etc lib64 mnt/root proc root sbin sys run
+mkdir -p bin dev etc lib64 mnt/root proc root sbin sys run usr/lib64
+
+# If use lib64
 if [[ -s /lib ]] ; then
   [[ ! -s lib ]] && ln -s lib64 lib
+  [[ ! -s usr/lib ]] && cd usr; ln -s lib64 lib; cd ..
 else
   mkdir lib
+  mkdir usr/lib
 fi
 
 # Device nodes
@@ -177,12 +181,10 @@ done
 # TODO: install keymap for future use of gpg 
 
 # Handle GCC libgcc_s.so
-search_lib=$(find /usr/lib* -type f | grep libgcc_s.so.1 | head -n 1)
+search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1)
 if [[ -n $search_lib ]] ; then
-  mkdir -p .${search_lib%/*} && doBin $search_lib
-  cp ${search_lib} ./usr/lib64/
-  cd usr && ln -s lib64 lib && cd ..
-  rm -rf ./usr/lib64/gcc
+  doBin $search_lib
+  cp ${search_lib} usr/lib64/libgcc_s.so.1
 else
   echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
