@@ -7,8 +7,45 @@ ROOT=/mnt/root
 ZPOOL_IMPORT_PATH=/dev/disk/by-id
 LOG=/tmp/eclosion.log
 
-# TODO get kv LUKS from cmdline
-kv=4.14.83-gentoo
+usage() {
+  echo "-k, --kernel    Kernel version to use [Required]"
+  echo "-h, --help    Print this fabulous help"
+  exit 0
+}
+
+#####################################################
+# Cmdline options
+
+if [ "$#" -eq 0 ] ; then
+  echo "$0: Argument required"
+  echo "Try $0 --help for more information."
+  exit 1
+fi
+
+while [ "$#" -gt 0 ] ; do
+  case "$1" in
+    -k | --kernel)
+      KERNEL=$2
+      shift
+      shift
+      ;;
+    -h | --help)
+      usage
+      shift
+      ;;
+    *)
+      echo "$0: Invalid option '$1'"
+      echo "Try '$0 --help' for more information."
+      exit 1
+      ;;
+  esac
+done
+
+if [ ! -d /lib/modules/$KERNEL ] ; then
+  echo "Kernel version $KERNEL no found"
+  exit 1
+fi
+
 LUKS="no"
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
@@ -155,8 +192,7 @@ doBin() {
 }
 
 doMod() {
-  # TODO get kv from cmdline
-  local m mod=$1 modules lib_dir=/lib/modules/${kv}
+  local m mod=$1 modules lib_dir=/lib/modules/$KERNEL
 
   for mod; do
     modules="$(sed -nre "s/(${mod}(|[_-]).*$)/\1/p" ${lib_dir}/modules.dep)"
@@ -193,7 +229,7 @@ else
 fi
 
 # Add kernel modules
-cp -a /lib/modules/$kv/modules.dep ./lib/modules/$kv/
+cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/
 
 # Create the init
 cat > init << EOF
@@ -255,7 +291,7 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 for x in \$(cat /proc/cmdline) ; do
   case \$x in
     root=ZFS=*)
-    BOOT=\$x
+      BOOT=\$x
     ;;
   esac
 done
