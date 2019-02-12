@@ -2,7 +2,20 @@
 An initramfs for ZFS and gentoo. 
 
 ## Status
++ Can boot on a normal zfs system (without encryption) for now...
 Still under building | testing :)
+
+## Usage
+
+You do not need to define a pool with `bootfs`.
+
+### 1. Normal root ZFS
+
+    $ zpool status | grep pool
+      pool: zfsforninja
+
++ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo `
++ Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo `
 
 ## Thanks
 + https://wiki.gentoo.org/wiki/Custom_Initramfs

@@ -3,7 +3,6 @@
 ECLODIR=$(pwd)
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
-ZPOOL_NAME=zfsforninja
 ROOT=/mnt/root
 ZPOOL_IMPORT_PATH=/dev/disk/by-id
 LOG=/tmp/eclosion.log
@@ -204,11 +203,10 @@ cat > init << EOF
 INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="$modules"
-ZPOOL_NAME=$ZPOOL_NAME
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
-  echo "Something went wrong. Dropping you to a shell."
+  echo "\$1. Dropping you to a shell."
   /bin/sh -l
 }
 
@@ -235,7 +233,7 @@ if [ -n "\$MODULES" ]; then
     modprobe -q \$m
   done
 else
-  rescueShell
+  rescueShell "No modules found"
 fi
 
 # Add mdev (for use disk by UUID,LABEL, etc...)
@@ -250,6 +248,25 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 # https://github.com/zfsonlinux/pkg-zfs/blob/snapshot/debian/wheezy/0.6.3-35-4c7b7e-wheezy/scripts/zfs-initramfs/scripts/zfs
 [ ! -f /proc/mounts ] && mount proc /proc
 [ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
+
+#######################################################
+# ZFS
+
+for x in \$(cat /proc/cmdline) ; do
+  case \$x in
+    root=ZFS=*)
+    BOOT=\$x
+    ;;
+  esac
+done
+
+if [ -z \$BOOT ] ; then
+  rescueShell "No pool defined has kernel cmdline"
+else
+  # if root=ZFS=zfsforninja/ROOT/gentoo, become
+  #         zfsforninja/ROOT/gentoo
+  ZFS=\${BOOT##*=}
+fi
 
 echo \$\$ >/run/\${0##*/}.pid
 
@@ -269,7 +286,7 @@ zpoolMount() {
   done
 }
 
-zpoolMount \$ZPOOL_NAME
+zpoolMount \${ZFS%%/*}
 rm /run/\${0##*/}.pid
 
 # cleanup
@@ -281,7 +298,7 @@ umount /dev
 exec switch_root /mnt/root \${INIT:-/sbin/init}
 
 # If the switch has fail
-rescueShell
+rescueShell "Yaaa, it is sucks"
 EOF
 
 chmod u+x init
