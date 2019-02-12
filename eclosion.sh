@@ -127,7 +127,7 @@ rm sbin/blkid
 # ZFS bins
 bins="blkid zfs zpool mount.zfs zdb fsck.zfs"
 # from /usr/share/initramfs-tools/hooks/zfs
-modules="zlib_deflate spl zavl zcommon znvpair zunicode zfs icp"
+modules="zlib_deflate spl zavl znvpair zcommon zunicode icp zfs"
 
 doBin() {
   local lib bin link
@@ -223,6 +223,12 @@ else
   mount -t tmpfs -o exec,mode=755 tmpfs /dev
 fi
 
+# Load modules
+for m in $MODULES ; do
+  echo "[*] Loading $m"
+  modprobe -q $m
+done
+
 # Add mdev (for use disk by UUID,LABEL, etc...)
 echo >/dev/mdev.seq
 [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
@@ -236,14 +242,8 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 [ ! -f /proc/mounts ] && mount proc /proc
 [ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
-# Load modules
-for m in $MODULES ; do
-  echo "[*] Loading $m"
-  modprobe -q $m
-done
-
 echo $$ >/run/${0##*/}.pid
-modprobe zfs
+#modprobe zfs
 
 # decrypt
 
@@ -277,7 +277,7 @@ umount /sys
 umount /dev
 
 # switch
-exec switch_root /mnt/root ${INIT}
+exec switch_root /mnt/root ${INIT:-/sbin/init}
 
 # If the switch has fail
 rescueShell
