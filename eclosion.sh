@@ -6,6 +6,7 @@ WORKDIR=/tmp/eclosion
 ZPOOL_NAME=zfsforninja
 ROOT=/mnt/root
 ZPOOL_IMPORT_PATH=/dev/disk/by-id
+LOG=/tmp/eclosion.log
 
 # TODO get kv LUKS from cmdline
 kv=4.14.83-gentoo
@@ -13,6 +14,8 @@ LUKS="no"
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
 [[ ! -d $ECLODIR_STATIC ]] && mkdir -p $ECLODIR_STATIC
+echo >$LOG && echo "[+] Build saved to $LOG"
+
 cd $WORKDIR
 
 # Directory structure
@@ -139,14 +142,14 @@ doBin() {
   bin=$(which $1 2>/dev/null)
   [[ $? -ne 0 ]] && bin=$1
   for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
-    echo "[+] Copying lib $lib to .$lib ..."
+    echo "[+] Copying lib $lib to .$lib ... " >>$LOG
     if [ -h $lib ] ; then
       link=$(readlink $lib)
-      echo "Found a link $lib == ${lib%/*}/$link"
+      echo "Found a link $lib == ${lib%/*}/$link" >>$LOG
       cp -a $lib .$lib
       cp -a ${lib%/*}/$link .${lib%/*}/$link
     elif [ -x $lib ] ; then
-      echo "Found binary $lib"
+      echo "Found binary $lib" >>$LOG
       cp -a $lib .$lib
     fi
   done
@@ -161,7 +164,7 @@ doMod() {
     if [ -n "${modules}" ]; then
       for m in ${modules}; do
         m="${m%:}"
-        echo "[+] Copying module $m ..."
+        echo "[+] Copying module $m ..." >>$LOG
         mkdir -p .${lib_dir}/${m%/*} && cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
       done
     else
