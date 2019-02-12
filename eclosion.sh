@@ -203,14 +203,14 @@ export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
   echo "Something went wrong. Dropping you to a shell."
-  exec /bin/sh -lim
+  /bin/sh -l
 }
 
 # Disable kernel log
 echo 0 > /proc/sys/kernel/printk
 clear
 
-mkdir -p dev/pts proc run sys $ROOT
+mkdir -p dev/pts proc run sys \$ROOT
 
 # mount for mdev 
 # https://git.busybox.net/busybox/plain/docs/mdev.txt
@@ -224,15 +224,18 @@ else
 fi
 
 # Load modules
-for m in $MODULES ; do
-  echo "[*] Loading $m"
-  modprobe -q $m
-done
+if [ -n "\$MODULES" ]; then
+  for m in \$MODULES ; do
+    modprobe -q \$m
+  done
+else
+  rescueShell
+fi
 
 # Add mdev (for use disk by UUID,LABEL, etc...)
 echo >/dev/mdev.seq
 [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
-echo $MDEV > /proc/sys/kernel/hotplug
+echo \$MDEV > /proc/sys/kernel/hotplug
 mdev -s
 
 mount -t tmpfs -o mode=755,size=1% tmpfs /run
@@ -242,34 +245,26 @@ mount -t tmpfs -o mode=755,size=1% tmpfs /run
 [ ! -f /proc/mounts ] && mount proc /proc
 [ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
-echo $$ >/run/${0##*/}.pid
-#modprobe zfs
+echo \$\$ >/run/\${0##*/}.pid
 
 # decrypt
-
-# fill ZPOOL_IMPORT_PATH
-#ZPOOL_IMPORT_PATH=$ZPOOL_IMPORT_PATH
-#export ZPOOL_IMPORT_PATH
 
 echo "found dir: "
 ls /dev/disk/by-*
 
 # mount
 zpoolMount() {
-  local zfs_stderr zfs_error pool=$1
+  local zfs_stderr zfs_error pool=\$1
   for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
-    [ ! -d $dir ] && continue
-    zfs_stderr=$(zpool import -d $dir -R $ROOT $pool 2>&1)
-    zfs_error=$?
-    [ "$zfs_error" == 0 ] && return 0
+    [ ! -d \$dir ] && continue
+    zfs_stderr=\$(zpool import -d \$dir -R \$ROOT \$pool 2>&1)
+    zfs_error=\$?
+    [ "\$zfs_error" == 0 ] && return 0
   done
 }
 
-zpoolMount $ZPOOL_NAME
-
-zfs mount -a
-
-rm /run/${0##*/}.pid
+zpoolMount \$ZPOOL_NAME
+rm /run/\${0##*/}.pid
 
 # cleanup
 umount /proc
@@ -277,7 +272,7 @@ umount /sys
 umount /dev
 
 # switch
-exec switch_root /mnt/root ${INIT:-/sbin/init}
+exec switch_root /mnt/root \${INIT:-/sbin/init}
 
 # If the switch has fail
 rescueShell
