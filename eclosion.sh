@@ -250,6 +250,21 @@ rescueShell() {
 echo 0 > /proc/sys/kernel/printk
 clear
 
+#######################################################
+# Modules
+
+# Load modules
+if [ -n "\$MODULES" ]; then
+  for m in \$MODULES ; do
+    modprobe -q \$m
+  done
+else
+  rescueShell "No modules found"
+fi
+
+#######################################################
+# Filesytem and mdev setup
+
 mkdir -p dev/pts proc run sys \$ROOT
 
 # mount for mdev 
@@ -263,27 +278,13 @@ else
   mount -t tmpfs -o exec,mode=755 tmpfs /dev
 fi
 
-# Load modules
-if [ -n "\$MODULES" ]; then
-  for m in \$MODULES ; do
-    modprobe -q \$m
-  done
-else
-  rescueShell "No modules found"
-fi
-
 # Add mdev (for use disk by UUID,LABEL, etc...)
 echo >/dev/mdev.seq
 [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
-echo \$MDEV > /proc/sys/kernel/hotplug
 mdev -s
+echo \$MDEV > /proc/sys/kernel/hotplug
 
 mount -t tmpfs -o mode=755,size=1% tmpfs /run
-
-# zpool import refuse to import without a valid mtab
-# https://github.com/zfsonlinux/pkg-zfs/blob/snapshot/debian/wheezy/0.6.3-35-4c7b7e-wheezy/scripts/zfs-initramfs/scripts/zfs
-[ ! -f /proc/mounts ] && mount proc /proc
-[ ! -f /etc/mtab ] && cat /proc/mounts > /etc/mtab
 
 #######################################################
 # ZFS
@@ -301,29 +302,81 @@ if [ -z \$BOOT ] ; then
 else
   # if root=ZFS=zfsforninja/ROOT/gentoo, become
   #         zfsforninja/ROOT/gentoo
-  ZFS=\${BOOT##*=}
+  BOOTFS=\${BOOT##*=}
+  RPOOL=\${BOOTFS%%/*}
 fi
 
-echo \$\$ >/run/\${0##*/}.pid
+zpoolMount() {
+  local zfs_stderr zfs_error
+  for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
+    [ ! -d \$dir ] && continue
+    zfs_stderr=\$(zpool import -d \$dir -R \$ROOT -N \$RPOOL 2>&1)
+    zfs_error=\$?
+    if [ "\$zfs_error" == 0 ] ; then
+      [[ "\$BOOTFS" != "\$RPOOL" ]] && zfs set mountpoint=/ \$BOOTFS
+      return 0
+    fi
+  done
+}
 
-# decrypt
+mountFs() {
+  local fs canmount mountpoint zfs_cmd zfs_stderr zfs_error
+  fs=\$1
+  # Skip canmount=off
+  if [ "\$fs" != "\$BOOTFS" ] ; then
+    canmount=\$(zfs get -H -ovalue canmount "\$fs" 2> /dev/null)
+    [ "\$canmount" == "off" ] && return 0
+  fi
+  # get original mountpoint
+  mountpoint=\$(zfs get -H -ovalue mountpoint "\$fs")
+  if [ \$mountpoint == "legacy" -o \$mountpoint == "none" ] ; then
+    mountpoint=\$(zfs get -H -ovalue org.zol:mountpoint "\$fs")
+    if [ \$mountpoint == "legacy" -o \$mountpoint == "none" -o \$mountpoint == "-" ] ; then
+      if [ \$fs != "\$BOOTFS" ] ; then
+        return 0
+      else
+        mountpoint=""
+      fi
+    fi
+    if [ \$mountpoint == "legacy" ] ; then
+      zfs_cmd="mount -t zfs"
+    else
+      zfs_cmd="mount -o zfsutil -t zfs"
+    fi
+  else
+    zfs_cmd="mount -o zfsutil -t zfs"
+  fi
+  zfs_stderr=\$(\$zfs_cmd "\$fs" "\$ROOT/\$mountpoint" 2>&1)
+  zfs_error=\$?
+  if [ \$zfs_error -eq 0 ] ; then
+    return 0
+  else
+    rescueShell "Failed to mount \$fs"
+  fi
+}
+
+#######################################################
+# Import POOL and dataset
+
+echo \$\$ >/run/\${0##*/}.pid
 
 echo "found dir: "
 ls /dev/disk/by-*
 
-# mount
-zpoolMount() {
-  local zfs_stderr zfs_error pool=\$1
-  for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
-    [ ! -d \$dir ] && continue
-    zfs_stderr=\$(zpool import -d \$dir -R \$ROOT \$pool 2>&1)
-    zfs_error=\$?
-    [ "\$zfs_error" == 0 ] && return 0
+zpoolMount
+filesystems=\$(zfs list -oname -tfilesystem -H -r \$RPOOL)
+if [ -n \$filesystems ] ; then
+  for fs in \$filesystems ; do
+    mountFs \$fs
   done
-}
+else
+  rescueShell "Failed to get datasets, try: zfs mount -a && exit"
+fi
 
-zpoolMount \${ZFS%%/*}
 rm /run/\${0##*/}.pid
+
+#######################################################
+# Cleanup and switch
 
 # cleanup
 umount /proc
