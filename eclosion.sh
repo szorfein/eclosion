@@ -346,12 +346,12 @@ mountFs() {
   else
     zfs_cmd="mount -o zfsutil -t zfs"
   fi
-  zfs_stderr=\$(\$zfs_cmd "\$fs" "\$ROOT/\$mountpoint" 2>&1)
+  zfs_stderr=\$(\$zfs_cmd "\$fs" "\$mountpoint" 2>&1)
   zfs_error=\$?
   if [ \$zfs_error -eq 0 ] ; then
     return 0
   else
-    rescueShell "Failed to mount \$fs"
+    rescueShell "Failed to mount \$fs at \$mountpoint"
   fi
 }
 
@@ -365,7 +365,7 @@ ls /dev/disk/by-*
 
 zpoolMount
 filesystems=\$(zfs list -oname -tfilesystem -H -r \$RPOOL)
-if [ -n \$filesystems ] ; then
+if [ -n "\$filesystems" ] ; then
   for fs in \$filesystems ; do
     mountFs \$fs
   done
