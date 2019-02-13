@@ -8,6 +8,7 @@ ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
 LOG=/tmp/eclosion.log
+QUIET=true
 
 ########################################################
 # Cmdline options
@@ -136,17 +137,17 @@ source /etc/portage/make.conf
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
 if [ ! -x $ECLODIR_STATIC/busybox ] ; then
-  echo "[+] Install busybox"
+  echo "[+] Building busybox, plz wait ..."
   PKG=sys-apps/busybox
   BUSYBOX_EBUILD=$(ls /usr/portage/$PKG | head -n 1)
-  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
+  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile 2>>$LOG
   (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
   ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
 elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then
   echo "[-] Busybox is not static"
   exit 1
 else
-  echo "[+] Busybox found"
+  echo "[+] Busybox found" >>$LOG
 fi
 
 cp -a $ECLODIR_STATIC/busybox $BUSYBOX_BIN
@@ -154,8 +155,11 @@ BUSY_BIN=$(type -p $BUSYBOX_BIN)
 BUSY_APPS=/tmp/busybox-apps
 $BUSY_BIN --list-full > $BUSY_APPS
 
-# To avoid busybox create a symbolic link of busybox
-mv bin/busybox .
+# Remove some links from $BUSY_APPS
+for l in busybox blkid sha1sum sha3sum ssl_client su \
+  telnet raidautorun adduser addgroup acpid ; do
+  eval sed -i '/$l/d' $BUSY_APPS
+done
 
 for bin in $(grep -e '^bin/[a-z]' $BUSY_APPS) ; do
   ln -s busybox $bin 
@@ -163,10 +167,6 @@ done
 for sbin in $(grep -e '^sbin/[a-z]' $BUSY_APPS) ; do
   ln -s ../bin/busybox $sbin
 done
-
-# Replace few link by program
-rm bin/busybox && mv busybox bin/
-rm sbin/blkid
 
 ########################################################
 # ZFS
@@ -472,7 +472,12 @@ EOF
 chmod u+x init
 
 # Create the initramfs
-find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
+if [ $QUIET == true ] ; then
+  find . -print0 | cpio --null -ov --format=newc 2>>$LOG | gzip -9 > ../eclosion-initramfs.img
+  echo -e "\nImage size $(tail -n 1 $LOG)"
+else
+  find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
+fi
 
 cd ..
 echo "[+] initramfs created at $(pwd)/eclosion-initramfs.img"
