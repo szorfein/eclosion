@@ -1,20 +1,22 @@
 #!/bin/sh
 
+########################################################
+# Program Vars
+
 ECLODIR=$(pwd)
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
-ZPOOL_IMPORT_PATH=/dev/disk/by-id
 LOG=/tmp/eclosion.log
+
+########################################################
+# Cmdline options
 
 usage() {
   echo "-k, --kernel    Kernel version to use [Required]"
   echo "-h, --help    Print this fabulous help"
   exit 0
 }
-
-#####################################################
-# Cmdline options
 
 if [ "$#" -eq 0 ] ; then
   echo "$0: Argument required"
@@ -46,7 +48,8 @@ if [ ! -d /lib/modules/$KERNEL ] ; then
   exit 1
 fi
 
-LUKS="no"
+########################################################
+# Install $WORKDIR
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
 [[ ! -d $ECLODIR_STATIC ]] && mkdir -p $ECLODIR_STATIC
@@ -54,7 +57,9 @@ echo >$LOG && echo "[+] Build saved to $LOG"
 
 cd $WORKDIR
 
-# Directory structure
+########################################################
+# Base
+
 mkdir -p bin dev etc lib64 mnt/root proc root sbin sys run usr/lib64
 
 # If use lib64
@@ -69,7 +74,10 @@ fi
 # Device nodes
 cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
 
-# mdef need /etc/group too
+########################################################
+# Mdev Setup
+
+# mdev and udev need /etc/group
 cp -a /etc/group etc/group
 
 cat > etc/mdev.conf << EOF
@@ -121,15 +129,10 @@ if [ ! -f $ECLODIR_STATIC/storage-device ] ; then
 fi
 cp -a $ECLODIR_STATIC/storage-device lib/mdev/
 
-if [[ $LUKS == "yes" ]] ; then
-  mkdir -p share/gnupg
-fi
+########################################################
+# Build Static Busybox
 
-# Copy binaries | static install when possible
 source /etc/portage/make.conf
-
-#######################################################
-# Busybox
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
 if [ ! -x $ECLODIR_STATIC/busybox ] ; then
@@ -165,13 +168,14 @@ done
 rm bin/busybox && mv busybox bin/
 rm sbin/blkid
 
-#######################################################
+########################################################
 # ZFS
 
-# ZFS bins
 bins="blkid zfs zpool mount.zfs zdb fsck.zfs"
-# from /usr/share/initramfs-tools/hooks/zfs
 modules="zlib_deflate spl zavl znvpair zcommon zunicode icp zfs"
+
+########################################################
+# Functions
 
 doBin() {
   local lib bin link
@@ -208,7 +212,9 @@ doMod() {
   done
 }
 
-# Detect udev
+########################################################
+# Udev setup
+
 [ -x /sbin/udevd ] && UDEVD=/sbin/udevd
 [ -x /lib/udev/udevd ] && UDEVD=/lib/udev/udevd
 [ -x /lib/systemd/systemd-udevd ] && UDEVD=/lib/systemd/systemd-udevd
@@ -218,14 +224,17 @@ if [ -z "$UDEVD" ] ; then
 fi
 
 mkdir -p etc/udev lib/udev/rules.d lib/systemd
+
 # Copy udev.conf if non void
 if [ -n "$(grep '^[a-z]' /etc/udev/udev.conf)" ] ; then
   cp /etc/udev/udev.conf ./etc/udev/udev.conf
 fi
+
 # Copy rules.d if exist
 if [ $(find /etc/udev/rules.d/ -type f | wc -l) -gt 2 ] ; then
   cp -a /etc/udev/rules.d ./etc/udev/rules.d
 fi
+
 # Add rules to create ID,UUID,LABEL
 for rules in 40-gentoo.rules 50-udev-default.rules \
   60-persistent-storage.rules 71-seat.rules ; do
@@ -238,6 +247,9 @@ done
 
 bins+=" $UDEVD udevadm /lib/udev/ata_id /lib/udev/scsi_id"
 
+########################################################
+# Install binary and modules
+
 for bin in $bins ; do
   doBin $bin
 done
@@ -246,9 +258,9 @@ for mod in $modules ; do
   doMod $mod
 done
 
-# TODO: install keymap for future use of gpg 
+########################################################
+# libgcc_s.so.1 required by zfs
 
-# Handle GCC libgcc_s.so
 search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1)
 if [[ -n $search_lib ]] ; then
   doBin $search_lib
@@ -258,10 +270,14 @@ else
   exit 1
 fi
 
-# Add kernel modules
+########################################################
+# Copy the modules.dep
+
 cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/
 
-# Create the init
+########################################################
+# Build the init
+
 cat > init << EOF
 #!/bin/sh
 
@@ -338,6 +354,7 @@ for x in \$(cat /proc/cmdline) ; do
   esac
 done
 
+# Seach a line like root=ZFS=zfsforninja/ROOT/gentoo
 if [ -z \$BOOT ] ; then
   rescueShell "No pool defined has kernel cmdline"
 else
@@ -347,6 +364,7 @@ else
   RPOOL=\${BOOTFS%%/*}
 fi
 
+# Import pool with -N (import without mounting any fs)
 zpoolMount() {
   local zfs_stderr zfs_error
   for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
@@ -360,6 +378,8 @@ zpoolMount() {
   done
 }
 
+# Mount dataset manually rather than use zfs mount -a
+# ref: somewhere at https://github.com/zfsonlinux/zfs/blob/master/contrib/initramfs/scripts/zfs.in
 mountFs() {
   local fs canmount mountpoint zfs_cmd zfs_stderr zfs_error
   fs=\$1
@@ -401,8 +421,8 @@ mountFs() {
 
 echo \$\$ >/run/\${0##*/}.pid
 
-echo "found dir: "
-ls /dev/disk/by-*
+#echo "found dir: "
+#ls /dev/disk/by-*
 
 zpoolMount
 filesystems=\$(zfs list -oname -tfilesystem -H -r \$RPOOL)
@@ -421,8 +441,13 @@ rm /run/\${0##*/}.pid
 
 udevadm control --exit
 
+# if use mdev
+if ! grep -q devtmpfs /proc/filesystems; then
+  echo '' > /proc/sys/kernel/hotplug
+fi
+
 # move /dev to ROOT
-mount -n -o move /dev "\$ROOT/dev" || mount -n --move /dev "\${ROOT}/dev"
+mount -n -o move /dev "\$ROOT/dev" || mount -n --move /dev "\$ROOT/dev"
 
 if command -v nuke >/dev/null; then
   nuke /dev
