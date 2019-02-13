@@ -25,3 +25,4 @@ You do not need to define a pool with `bootfs`.
 + https://github.com/slashbeast/mdev-like-a-boss
 + https://github.com/slashbeast/better-initramfs
 + https://github.com/zfsonlinux/zfs/tree/master/contrib/initramfs
++ https://salsa.debian.org/systemd-team/systemd/tree/master/debian/extra/initramfs-tools

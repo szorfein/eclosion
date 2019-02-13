@@ -217,8 +217,7 @@ if [ -z "$UDEVD" ] ; then
   exit 1
 fi
 
-mkdir -p etc/udev lib/udev lib/systemd
-
+mkdir -p etc/udev lib/udev/rules.d lib/systemd
 # Copy udev.conf if non void
 if [ -n "$(grep '^[a-z]' /etc/udev/udev.conf)" ] ; then
   cp /etc/udev/udev.conf ./etc/udev/udev.conf
@@ -227,8 +226,17 @@ fi
 if [ $(find /etc/udev/rules.d/ -type f | wc -l) -gt 2 ] ; then
   cp -a /etc/udev/rules.d ./etc/udev/rules.d
 fi
+# Add rules to create ID,UUID,LABEL
+for rules in 40-gentoo.rules 50-udev-default.rules \
+  60-persistent-storage.rules 71-seat.rules ; do
+  if [ -e /etc/udev/rules.d/$rules ] ; then
+    cp -p /etc/udev/rules/$rules lib/udev/rules.d/
+  elif [ -e /lib/udev/rules.d/$rules ] ; then
+    cp -p /lib/udev/rules.d/$rules lib/udev/rules.d/
+  fi
+done
 
-bins+=" $UDEVD udevadm"
+bins+=" $UDEVD udevadm /lib/udev/ata_id /lib/udev/scsi_id"
 
 for bin in $bins ; do
   doBin $bin
@@ -261,7 +269,7 @@ cat > init << EOF
 INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="$modules"
-UDEV=$UDEVD
+UDEVD=$UDEVD
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
@@ -299,22 +307,25 @@ if grep -q devtmpfs /proc/filesystems; then
   mount -t devtmpfs devtmpfs /dev
 else
   mount -t tmpfs -o exec,mode=755 tmpfs /dev
+  echo >/dev/mdev.seq
+  [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
+  mdev -s
+  echo \$MDEV > /proc/sys/kernel/hotplug
 fi
-
-# Add mdev (for use disk by UUID,LABEL, etc...)
-echo >/dev/mdev.seq
-[ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
-mdev -s
-echo \$MDEV > /proc/sys/kernel/hotplug
 
 mount -t tmpfs -o mode=755,size=1% tmpfs /run
 
 #######################################################
 # udevd
 
+if [ -w /sys/kernel/uevent_helper ] ; then
+  echo > /sys/kernel/uevent_helper
+fi
+
 \${UDEVD} --daemon --resolve-names=never 2> /dev/null
-udevadm trigger
-udevadm settle
+udevadm trigger --type=subsystems --action=add
+udevadm trigger --type=devices --action=add
+udevadm settle || true
 
 #######################################################
 # ZFS
@@ -408,12 +419,23 @@ rm /run/\${0##*/}.pid
 #######################################################
 # Cleanup and switch
 
-killall -w \${UDEVD##*/}
+udevadm control --exit
+
+# move /dev to ROOT
+mount -n -o move /dev "\$ROOT/dev" || mount -n --move /dev "\${ROOT}/dev"
+
+if command -v nuke >/dev/null; then
+  nuke /dev
+else
+  # shellcheck disable=SC2114
+  rm -rf /dev
+fi
+ln -s "\$ROOT/dev" /dev
 
 # cleanup
-umount /proc
-umount /sys
-umount /dev
+#umount /proc
+#umount /sys
+#umount /dev
 
 # switch
 exec switch_root /mnt/root \${INIT:-/sbin/init}
