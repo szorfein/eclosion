@@ -208,6 +208,28 @@ doMod() {
   done
 }
 
+# Detect udev
+[ -x /sbin/udevd ] && UDEVD=/sbin/udevd
+[ -x /lib/udev/udevd ] && UDEVD=/lib/udev/udevd
+[ -x /lib/systemd/systemd-udevd ] && UDEVD=/lib/systemd/systemd-udevd
+if [ -z "$UDEVD" ] ; then
+  echo "Cannot find udevd nor systemd-udevd"
+  exit 1
+fi
+
+mkdir -p etc/udev lib/udev lib/systemd
+
+# Copy udev.conf if non void
+if [ -n "$(grep '^[a-z]' /etc/udev/udev.conf)" ] ; then
+  cp /etc/udev/udev.conf ./etc/udev/udev.conf
+fi
+# Copy rules.d if exist
+if [ $(find /etc/udev/rules.d/ -type f | wc -l) -gt 2 ] ; then
+  cp -a /etc/udev/rules.d ./etc/udev/rules.d
+fi
+
+bins+=" $UDEVD udevadm"
+
 for bin in $bins ; do
   doBin $bin
 done
@@ -239,6 +261,7 @@ cat > init << EOF
 INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="$modules"
+UDEV=$UDEVD
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
@@ -285,6 +308,13 @@ mdev -s
 echo \$MDEV > /proc/sys/kernel/hotplug
 
 mount -t tmpfs -o mode=755,size=1% tmpfs /run
+
+#######################################################
+# udevd
+
+\${UDEVD} --daemon --resolve-names=never 2> /dev/null
+udevadm trigger
+udevadm settle
 
 #######################################################
 # ZFS
@@ -377,6 +407,8 @@ rm /run/\${0##*/}.pid
 
 #######################################################
 # Cleanup and switch
+
+killall -w \${UDEVD##*/}
 
 # cleanup
 umount /proc
