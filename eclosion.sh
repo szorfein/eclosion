@@ -8,6 +8,7 @@ ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
 LOG=/tmp/eclosion.log
+LUKS=false
 QUIET=true
 
 ########################################################
@@ -15,6 +16,7 @@ QUIET=true
 
 usage() {
   echo "-k, --kernel    Kernel version to use [Required]"
+  echo "-l, --luks    Add cryptsetup to the image"
   echo "-h, --help    Print this fabulous help"
   exit 0
 }
@@ -30,6 +32,10 @@ while [ "$#" -gt 0 ] ; do
     -k | --kernel)
       KERNEL=$2
       shift
+      shift
+      ;;
+    -l | --luks)
+      LUKS=true
       shift
       ;;
     -h | --help)
@@ -51,6 +57,8 @@ fi
 
 ########################################################
 # Install $WORKDIR
+
+[[ -d $WORKDIR ]] && rm -rf $WORKDIR/*
 
 [[ ! -d $WORKDIR ]] && mkdir $WORKDIR
 [[ ! -d $ECLODIR_STATIC ]] && mkdir -p $ECLODIR_STATIC
@@ -246,6 +254,11 @@ for rules in 40-gentoo.rules 50-udev-default.rules \
 done
 
 bins+=" $UDEVD udevadm /lib/udev/ata_id /lib/udev/scsi_id"
+
+########################################################
+# Install cryptsetup
+
+modules+=" vfat nls_cp437 nls_iso8859-1 ext4"
 
 ########################################################
 # Install binary and modules
@@ -481,6 +494,5 @@ fi
 
 cd ..
 echo "[+] initramfs created at $(pwd)/eclosion-initramfs.img"
-#rm -rf $WORKDIR
 
 exit 0
