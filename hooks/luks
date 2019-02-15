@@ -1,0 +1,54 @@
+#!/bin/sh
+
+#source /etc/portage/make.conf
+
+###########################################################
+# Static install
+
+# TODO if someone has a tips to compile it as static
+# Because files under src/.libs seem not static
+
+#BIN=$WORKDIR/bin/cryptsetup
+#if [ ! -x $ECLODIR_STATIC/cryptsetup ] ; then
+# PKG=sys-fs/cryptsetup
+#  EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
+#  EBUILD=${EBUILD##*/}
+#  NO_REV=${EBUILD%.*}
+#  echo "[+] Building $EBUILD, plz wait ..."
+#  USE="-gcrypt nettle static" ebuild /usr/portage/$PKG/$EBUILD clean unpack compile
+#  if [ $? -ne 0 ] ; then
+#    echo "[-] Failed to build $EBUILD"
+#  fi
+#  (cp /var/tmp/portage/${PKG%/*}/${EBUILD%.*}/work/${NO_REV%-*}/src/.libs/cryptsetup $ECLODIR_STATIC/cryptsetup)
+#  (cp /var/tmp/portage/${PKG%/*}/${EBUILD%.*}/work/${NO_REV%-*}/src/.libs/veritysetup $ECLODIR_STATIC/veritysetup)
+#  ebuild /usr/portage/$PKG/$EBUILD clean
+#elif ldd $ECLODIR_STATIC/cryptsetup >/dev/null ; then
+#  echo "[-] $PKG is not static"
+#  exit 1
+#else
+#  echo "[+] $PKG found" >>$LOG
+#fi
+
+#cp $ECLODIR_STATIC/cryptsetup $BIN
+# veritysetup is necessary ?
+#cp $ECLODIR_STATIC/veritysetup bin/
+
+###########################################################
+# 
+
+# Add devices
+cp -a /dev/{urandom,random} dev/
+
+# Udev rules
+for rules in 10-dm.rules 13-dm-disk.rules \
+  95-dm-notify.rules ; do
+  if [ -e /etc/udev/rules.d/$rules ] ; then
+    cp -p /etc/udev/rules/$rules lib/udev/rules.d/
+  elif [ -e /lib/udev/rules.d/$rules ] ; then
+    cp -p /lib/udev/rules.d/$rules lib/udev/rules.d/
+  fi
+done
+
+bins+=" cryptsetup dmsetup"
+modules+=" dm-crypt loop aes sha256 sha512 wp512 xts serpent whirlpool"
+modules+=" ext2 ext3 ext4"

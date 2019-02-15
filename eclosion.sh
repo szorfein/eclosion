@@ -136,7 +136,8 @@ doMod() {
 . $ECLODIR/hooks/busybox
 . $ECLODIR/hooks/udev
 
-[ -n $GPG ] && . $ECLODIR/hooks/gpg
+[ ! -z $LUKS ] && . $ECLODIR/hooks/luks
+[ ! -z $GPG ] && . $ECLODIR/hooks/gpg
 
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 if [ -z "$DEVTMPFS" ] ; then

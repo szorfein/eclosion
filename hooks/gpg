@@ -23,6 +23,8 @@ else
   echo "[+] gpg found" >>$LOG
 fi
 
-mkdir -p usr/share/gnupg
+mkdir -p usr/share/gnupg root/.gnupg
 cp -a $ECLODIR_STATIC/gpg $GPG_BIN
 cp -a $ECLODIR_STATIC/options.skel usr/share/gnupg/
+
+modules+=" cast5"
