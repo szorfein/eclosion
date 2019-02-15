@@ -1,0 +1,10 @@
+#!/bin/sh
+
+if [ -w /sys/kernel/uevent_helper ] ; then
+  echo > /sys/kernel/uevent_helper
+fi
+
+$UDEVD --daemon --resolve-names=never 2> /dev/null
+udevadm trigger --type=subsystems --action=add
+udevadm trigger --type=devices --action=add
+udevadm settle || true

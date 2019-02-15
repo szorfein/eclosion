@@ -1,0 +1,16 @@
+#!/bin/sh
+
+udevadm control --exit
+
+# move /dev to ROOT
+mount -n -o move /dev "$ROOT/dev" || mount -n --move /dev "$ROOT/dev"
+
+# create a temporary symlink to the final /dev for other initramfs scripts
+if command -v nuke >/dev/null; then
+  nuke /dev
+else
+  # shellcheck disable=SC2114
+  rm -rf /dev
+fi
+
+ln -s "$ROOT/dev" /dev

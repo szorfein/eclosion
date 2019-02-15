@@ -1,0 +1,48 @@
+#!/bin/sh
+
+# Mount dataset manually rather than use zfs mount -a
+# ref: somewhere at https://github.com/zfsonlinux/zfs/blob/master/contrib/initramfs/scripts/zfs.in
+mountFs() {
+  local fs canmount mountpoint zfs_cmd zfs_stderr zfs_error
+  fs=$1
+  # Skip canmount=off
+  if [ "$fs" != "$BOOTFS" ] ; then
+    canmount=$(zfs get -H -ovalue canmount "$fs" 2> /dev/null)
+    [ "$canmount" == "off" ] && return 0
+  fi
+  # get original mountpoint
+  mountpoint=$(zfs get -H -ovalue mountpoint "$fs")
+  if [ $mountpoint == "legacy" -o $mountpoint == "none" ] ; then
+    mountpoint=$(zfs get -H -ovalue org.zol:mountpoint "$fs")
+    if [ $mountpoint == "legacy" -o $mountpoint == "none" -o $mountpoint == "-" ] ; then
+      if [ $fs != "$BOOTFS" ] ; then
+        return 0
+      else
+        mountpoint=""
+      fi
+    fi
+    if [ $mountpoint == "legacy" ] ; then
+      zfs_cmd="mount -t zfs"
+    else
+      zfs_cmd="mount -o zfsutil -t zfs"
+    fi
+  else
+    zfs_cmd="mount -o zfsutil -t zfs"
+  fi
+  zfs_stderr=$($zfs_cmd "$fs" "$mountpoint" 2>&1)
+  zfs_error=$?
+  if [ $zfs_error -eq 0 ] ; then
+    return 0
+  else
+    rescueShell "Failed to mount $fs at $mountpoint"
+  fi
+}
+
+filesystems=$(zfs list -oname -tfilesystem -H -r $RPOOL)
+if [ -n "$filesystems" ] ; then
+  for fs in $filesystems ; do
+    mountFs $fs
+  done
+else
+  rescueShell "Failed to get datasets, try: zfs mount -a && exit"
+fi

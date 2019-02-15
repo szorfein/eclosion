@@ -172,6 +172,20 @@ done
 cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/
 
 ########################################################
+# Copy scripts
+
+mkdir -p lib/eclosion/{init-top,init-bottom}
+for s in $ECLODIR/scripts/init-top/* ; do
+  cp $s lib/eclosion/init-top/${s##*/}
+  chmod +x lib/eclosion/init-top/${s##*/}
+done
+
+for s in $ECLODIR/scripts/init-bottom/* ; do
+  cp $s lib/eclosion/init-bottom/${s##*/}
+  chmod +x lib/eclosion/init-bottom/${s##*/}
+done
+
+########################################################
 # Build the init
 
 cat > init << EOF
@@ -214,33 +228,22 @@ mkdir -p dev/pts proc run sys \$ROOT
 # https://git.busybox.net/busybox/plain/docs/mdev.txt
 mount -t proc proc /proc
 mount -t sysfs sysfs /sys
+mount -t tmpfs -o mode=755,size=1% tmpfs /run
 
+# mount dev
 if grep -q devtmpfs /proc/filesystems; then
   mount -t devtmpfs devtmpfs /dev
 else
-  mount -t tmpfs -o exec,mode=755 tmpfs /dev
-  echo >/dev/mdev.seq
-  [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
-  mdev -s
-  echo \$MDEV > /proc/sys/kernel/hotplug
+  . /lib/eclosion/init-top/mdev
 fi
-
-mount -t tmpfs -o mode=755,size=1% tmpfs /run
 
 #######################################################
 # udevd
 
-if [ -w /sys/kernel/uevent_helper ] ; then
-  echo > /sys/kernel/uevent_helper
-fi
-
-\${UDEVD} --daemon --resolve-names=never 2> /dev/null
-udevadm trigger --type=subsystems --action=add
-udevadm trigger --type=devices --action=add
-udevadm settle || true
+. /lib/eclosion/init-top/udev
 
 #######################################################
-# ZFS
+# Kernel args
 
 for x in \$(cat /proc/cmdline) ; do
   case \$x in
@@ -260,99 +263,17 @@ else
   RPOOL=\${BOOTFS%%/*}
 fi
 
-# Import pool with -N (import without mounting any fs)
-zpoolMount() {
-  local zfs_stderr zfs_error
-  for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
-    [ ! -d \$dir ] && continue
-    zfs_stderr=\$(zpool import -d \$dir -R \$ROOT -N \$RPOOL 2>&1)
-    zfs_error=\$?
-    if [ "\$zfs_error" == 0 ] ; then
-      [[ "\$BOOTFS" != "\$RPOOL" ]] && zfs set mountpoint=/ \$BOOTFS
-      return 0
-    fi
-  done
-}
-
-# Mount dataset manually rather than use zfs mount -a
-# ref: somewhere at https://github.com/zfsonlinux/zfs/blob/master/contrib/initramfs/scripts/zfs.in
-mountFs() {
-  local fs canmount mountpoint zfs_cmd zfs_stderr zfs_error
-  fs=\$1
-  # Skip canmount=off
-  if [ "\$fs" != "\$BOOTFS" ] ; then
-    canmount=\$(zfs get -H -ovalue canmount "\$fs" 2> /dev/null)
-    [ "\$canmount" == "off" ] && return 0
-  fi
-  # get original mountpoint
-  mountpoint=\$(zfs get -H -ovalue mountpoint "\$fs")
-  if [ \$mountpoint == "legacy" -o \$mountpoint == "none" ] ; then
-    mountpoint=\$(zfs get -H -ovalue org.zol:mountpoint "\$fs")
-    if [ \$mountpoint == "legacy" -o \$mountpoint == "none" -o \$mountpoint == "-" ] ; then
-      if [ \$fs != "\$BOOTFS" ] ; then
-        return 0
-      else
-        mountpoint=""
-      fi
-    fi
-    if [ \$mountpoint == "legacy" ] ; then
-      zfs_cmd="mount -t zfs"
-    else
-      zfs_cmd="mount -o zfsutil -t zfs"
-    fi
-  else
-    zfs_cmd="mount -o zfsutil -t zfs"
-  fi
-  zfs_stderr=\$(\$zfs_cmd "\$fs" "\$mountpoint" 2>&1)
-  zfs_error=\$?
-  if [ \$zfs_error -eq 0 ] ; then
-    return 0
-  else
-    rescueShell "Failed to mount \$fs at \$mountpoint"
-  fi
-}
-
 #######################################################
 # Import POOL and dataset
 
-echo \$\$ >/run/\${0##*/}.pid
-
-#echo "found dir: "
-#ls /dev/disk/by-*
-
-zpoolMount
-filesystems=\$(zfs list -oname -tfilesystem -H -r \$RPOOL)
-if [ -n "\$filesystems" ] ; then
-  for fs in \$filesystems ; do
-    mountFs \$fs
-  done
-else
-  rescueShell "Failed to get datasets, try: zfs mount -a && exit"
-fi
-
-rm /run/\${0##*/}.pid
+. /lib/eclosion/init-top/zfs
+. /lib/eclosion/init-bottom/zfs
 
 #######################################################
 # Cleanup and switch
 
-udevadm control --exit
-
-# if use mdev
-if ! grep -q devtmpfs /proc/filesystems; then
-  echo '' > /proc/sys/kernel/hotplug
-fi
-
-# move /dev to ROOT
-mount -n -o move /dev "\$ROOT/dev" || mount -n --move /dev "\$ROOT/dev"
-
-# create a temporary symlink to the final /dev for other initramfs scripts
-if command -v nuke >/dev/null; then
-  nuke /dev
-else
-  # shellcheck disable=SC2114
-  rm -rf /dev
-fi
-ln -s "\$ROOT/dev" /dev
+. /lib/eclosion/init-bottom/udev
+. /lib/eclosion/init-bottom/mdev
 
 # cleanup
 for dir in /run /sys /proc ; do

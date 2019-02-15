@@ -1,0 +1,6 @@
+#!/bin/sh
+
+# if use mdev
+if ! grep -q devtmpfs /proc/filesystems; then
+  echo '' > /proc/sys/kernel/hotplug
+fi

@@ -1,0 +1,17 @@
+#!/bin/sh
+
+# Import pool with -N (import without mounting any fs)
+zpoolMount() {
+  local zfs_stderr zfs_error
+  for dir in /dev/disk/by-vdev /dev/disk/by-* /dev; do
+    [ ! -d $dir ] && continue
+    zfs_stderr=$(zpool import -d $dir -R $ROOT -N $RPOOL 2>&1)
+    zfs_error=$?
+    if [ "$zfs_error" == 0 ] ; then
+      [[ "$BOOTFS" != "$RPOOL" ]] && zfs set mountpoint=/ $BOOTFS
+      return 0
+    fi
+  done
+}
+
+zpoolMount
