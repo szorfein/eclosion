@@ -1,0 +1,36 @@
+#!/bin/sh
+
+########################################################
+# Udev setup
+
+[ -x /sbin/udevd ] && UDEVD=/sbin/udevd
+[ -x /lib/udev/udevd ] && UDEVD=/lib/udev/udevd
+[ -x /lib/systemd/systemd-udevd ] && UDEVD=/lib/systemd/systemd-udevd
+if [ -z "$UDEVD" ] ; then
+  echo "Cannot find udevd nor systemd-udevd"
+  exit 1
+fi
+
+mkdir -p etc/udev lib/udev/rules.d lib/systemd
+
+# Copy udev.conf if non void
+if [ -n "$(grep '^[a-z]' /etc/udev/udev.conf)" ] ; then
+  cp /etc/udev/udev.conf ./etc/udev/udev.conf
+fi
+
+# Copy rules.d if exist
+if [ $(find /etc/udev/rules.d/ -type f | wc -l) -gt 2 ] ; then
+  cp -a /etc/udev/rules.d ./etc/udev/rules.d
+fi
+
+# Add rules to create ID,UUID,LABEL
+for rules in 40-gentoo.rules 50-udev-default.rules \
+  60-persistent-storage.rules 71-seat.rules ; do
+  if [ -e /etc/udev/rules.d/$rules ] ; then
+    cp -p /etc/udev/rules/$rules lib/udev/rules.d/
+  elif [ -e /lib/udev/rules.d/$rules ] ; then
+    cp -p /lib/udev/rules.d/$rules lib/udev/rules.d/
+  fi
+done
+
+bins+=" $UDEVD udevadm /lib/udev/ata_id /lib/udev/scsi_id"

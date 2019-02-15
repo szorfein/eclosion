@@ -84,99 +84,6 @@ fi
 cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
 
 ########################################################
-# Mdev Setup
-
-# mdev and udev need /etc/group
-cp -a /etc/group etc/group
-
-cat > etc/mdev.conf << EOF
-\$MODALIAS=.*	0:0 660 @modprobe "\$MODALIAS"
-
-null		0:0 666 @chmod 666 \$MDEV
-zero		0:0 666
-full		0:0 666
-random		0:0 444
-urandom		0:0 444
-hwrandom	0:0 444
-grsec		0:0 660
-
-kmem		0:0 640
-mem		0:0 640
-port		0:0 640
-console		0:5 600 @chmod 600 \$MDEV
-ptmx		0:5 666
-pty.*		0:5 660
-
-tty		0:5 666
-tty[0-9]*	0:5 660
-vcsa*[0-9]*	0:5 660
-ttyS[0-9]*	0:14 660
-
-ram([0-9]*)	0:6 660 >rd/%1
-loop([0-9]+)	0:6 660 >loop/%1
-sd[a-z].*	0:6 660 */lib/mdev/storage-device
-hd[a-z].*	0:6 660 */lib/mdev/storage-device
-vd[a-z].* 0:6 660 */lib/mdev/storage-device
-dm-[0-9]* 0:6 660 */lib/mdev/storage-device
-bcache[0-9]* 0:6 660 */lib/mdev/storage-device
-
-fuse		0:0 666
-
-event[0-9]+	0:0 640 =input/
-mice		0:0 640 =input/
-mouse[0-9]	0:0 640 =input/
-ts[0-9]		0:0 600 =input/
-
-usbdev[0-9]*	0:0 660
-EOF
-
-mkdir -p lib/mdev
-cp /lib/mdev/ide_links lib/mdev/
-if [ ! -f $ECLODIR_STATIC/storage-device ] ; then
-  wget -P $ECLODIR_STATIC/ https://raw.githubusercontent.com/slashbeast/mdev-like-a-boss/master/helpers/storage-device
-  chmod +x $ECLODIR_STATIC/storage-device
-fi
-cp -a $ECLODIR_STATIC/storage-device lib/mdev/
-
-########################################################
-# Build Static Busybox
-
-source /etc/portage/make.conf
-
-BUSYBOX_BIN=$WORKDIR/bin/busybox
-if [ ! -x $ECLODIR_STATIC/busybox ] ; then
-  echo "[+] Building busybox, plz wait ..."
-  PKG=sys-apps/busybox
-  BUSYBOX_EBUILD=$(ls /usr/portage/$PKG | head -n 1)
-  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile 2>>$LOG
-  (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
-  ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
-elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then
-  echo "[-] Busybox is not static"
-  exit 1
-else
-  echo "[+] Busybox found" >>$LOG
-fi
-
-cp -a $ECLODIR_STATIC/busybox $BUSYBOX_BIN
-BUSY_BIN=$(type -p $BUSYBOX_BIN)
-BUSY_APPS=/tmp/busybox-apps
-$BUSY_BIN --list-full > $BUSY_APPS
-
-# Remove some links from $BUSY_APPS
-for l in busybox blkid sha1sum sha3sum ssl_client su \
-  telnet raidautorun adduser addgroup acpid ; do
-  eval sed -i '/$l/d' $BUSY_APPS
-done
-
-for bin in $(grep -e '^bin/[a-z]' $BUSY_APPS) ; do
-  ln -s busybox $bin 
-done
-for sbin in $(grep -e '^sbin/[a-z]' $BUSY_APPS) ; do
-  ln -s ../bin/busybox $sbin
-done
-
-########################################################
 # ZFS
 
 bins="blkid zfs zpool mount.zfs zdb fsck.zfs"
@@ -221,44 +128,32 @@ doMod() {
 }
 
 ########################################################
-# Udev setup
+# Install hooks
 
-[ -x /sbin/udevd ] && UDEVD=/sbin/udevd
-[ -x /lib/udev/udevd ] && UDEVD=/lib/udev/udevd
-[ -x /lib/systemd/systemd-udevd ] && UDEVD=/lib/systemd/systemd-udevd
-if [ -z "$UDEVD" ] ; then
-  echo "Cannot find udevd nor systemd-udevd"
-  exit 1
+. $ECLODIR/hooks/busybox
+. $ECLODIR/hooks/udev
+
+DEVTMPFS=$(grep devtmpfs /proc/filesystems)
+if [ -z "$DEVTMPFS" ] ; then
+  . $ECLODIR/hooks/mdev
 fi
-
-mkdir -p etc/udev lib/udev/rules.d lib/systemd
-
-# Copy udev.conf if non void
-if [ -n "$(grep '^[a-z]' /etc/udev/udev.conf)" ] ; then
-  cp /etc/udev/udev.conf ./etc/udev/udev.conf
-fi
-
-# Copy rules.d if exist
-if [ $(find /etc/udev/rules.d/ -type f | wc -l) -gt 2 ] ; then
-  cp -a /etc/udev/rules.d ./etc/udev/rules.d
-fi
-
-# Add rules to create ID,UUID,LABEL
-for rules in 40-gentoo.rules 50-udev-default.rules \
-  60-persistent-storage.rules 71-seat.rules ; do
-  if [ -e /etc/udev/rules.d/$rules ] ; then
-    cp -p /etc/udev/rules/$rules lib/udev/rules.d/
-  elif [ -e /lib/udev/rules.d/$rules ] ; then
-    cp -p /lib/udev/rules.d/$rules lib/udev/rules.d/
-  fi
-done
-
-bins+=" $UDEVD udevadm /lib/udev/ata_id /lib/udev/scsi_id"
 
 ########################################################
 # Install cryptsetup
 
-modules+=" vfat nls_cp437 nls_iso8859-1 ext4"
+#modules+=" vfat nls_cp437 nls_iso8859-1 ext4"
+
+########################################################
+# libgcc_s.so.1 required by zfs
+
+search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1)
+if [[ -n $search_lib ]] ; then
+  bin+=" $search_lib"
+  cp ${search_lib} usr/lib64/libgcc_s.so.1
+else
+  echo "[-] libgcc_s.so.1 no found on the system..."
+  exit 1
+fi
 
 ########################################################
 # Install binary and modules
@@ -270,18 +165,6 @@ done
 for mod in $modules ; do
   doMod $mod
 done
-
-########################################################
-# libgcc_s.so.1 required by zfs
-
-search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1)
-if [[ -n $search_lib ]] ; then
-  doBin $search_lib
-  cp ${search_lib} usr/lib64/libgcc_s.so.1
-else
-  echo "[-] libgcc_s.so.1 no found on the system..."
-  exit 1
-fi
 
 ########################################################
 # Copy the modules.dep
@@ -462,6 +345,7 @@ fi
 # move /dev to ROOT
 mount -n -o move /dev "\$ROOT/dev" || mount -n --move /dev "\$ROOT/dev"
 
+# create a temporary symlink to the final /dev for other initramfs scripts
 if command -v nuke >/dev/null; then
   nuke /dev
 else
@@ -471,9 +355,11 @@ fi
 ln -s "\$ROOT/dev" /dev
 
 # cleanup
-#umount /proc
-#umount /sys
-#umount /dev
+for dir in /run /sys /proc ; do
+  echo "Unmouting \$dir"
+  umount -l \$dir
+  echo "\$?"
+done
 
 # switch
 exec switch_root /mnt/root \${INIT:-/sbin/init}
