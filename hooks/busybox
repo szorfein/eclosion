@@ -7,10 +7,15 @@ source /etc/portage/make.conf
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
 if [ ! -x $ECLODIR_STATIC/busybox ] ; then
-  echo "[+] Building busybox, plz wait ..."
   PKG=sys-apps/busybox
-  BUSYBOX_EBUILD=$(ls /usr/portage/$PKG | head -n 1)
-  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile 2>>$LOG
+  BUSYBOX_EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
+  BUSYBOX_EBUILD=${BUSYBOX_EBUILD##*/}
+  echo "[+] Building $BUSYBOX_EBUILD, plz wait ..."
+  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
+  if [ $? -ne 0 ] ; then
+    echo "[-] Failed to build $BUSYBOX_EBUILD"
+    exit 1
+  fi
   (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
   ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
 elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then

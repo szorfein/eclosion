@@ -8,7 +8,6 @@ ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
 LOG=/tmp/eclosion.log
-LUKS=false
 QUIET=true
 
 ########################################################
@@ -36,6 +35,10 @@ while [ "$#" -gt 0 ] ; do
       ;;
     -l | --luks)
       LUKS=true
+      shift
+      ;;
+    -g | --gpg)
+      GPG=true
       shift
       ;;
     -h | --help)
@@ -132,6 +135,8 @@ doMod() {
 
 . $ECLODIR/hooks/busybox
 . $ECLODIR/hooks/udev
+
+[ -n $GPG ] && . $ECLODIR/hooks/gpg
 
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 if [ -z "$DEVTMPFS" ] ; then
