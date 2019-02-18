@@ -76,8 +76,8 @@ mkdir -p bin dev etc lib64 mnt/root proc root sbin sys run usr/lib64
 
 # If use lib64
 if [[ -s /lib ]] ; then
-  [[ ! -s lib ]] && ln -s lib64 lib
-  [[ ! -s usr/lib ]] && cd usr; ln -s lib64 lib; cd ..
+  ln -s lib64 lib
+  cd usr; ln -s lib64 lib; cd ..
 else
   mkdir lib
   mkdir usr/lib
@@ -136,18 +136,13 @@ doMod() {
 . $ECLODIR/hooks/busybox
 . $ECLODIR/hooks/udev
 
-[ ! -z $LUKS ] && . $ECLODIR/hooks/luks
 [ ! -z $GPG ] && . $ECLODIR/hooks/gpg
+[ ! -z $LUKS ] && . $ECLODIR/hooks/luks
 
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 if [ -z "$DEVTMPFS" ] ; then
   . $ECLODIR/hooks/mdev
 fi
-
-########################################################
-# Install cryptsetup
-
-#modules+=" vfat nls_cp437 nls_iso8859-1 ext4"
 
 ########################################################
 # libgcc_s.so.1 required by zfs
@@ -259,7 +254,7 @@ for x in \$(cat /proc/cmdline) ; do
   esac
 done
 
-# Seach a line like root=ZFS=zfsforninja/ROOT/gentoo
+# Search a line like root=ZFS=zfsforninja/ROOT/gentoo
 if [ -z \$BOOT ] ; then
   rescueShell "No pool defined has kernel cmdline"
 else

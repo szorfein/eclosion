@@ -1,0 +1,2 @@
+# kill the agent
+gpgconf --kill gpg-agent

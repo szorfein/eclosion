@@ -51,4 +51,5 @@ done
 
 bins+=" cryptsetup dmsetup"
 modules+=" dm-crypt loop aes sha256 sha512 wp512 xts serpent whirlpool"
-modules+=" ext2 ext3 ext4"
+# if need mount external device
+modules+=" ext2 ext3 ext4 vfat nls_cp437 nls_iso8859-1"
