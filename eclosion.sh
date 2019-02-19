@@ -17,6 +17,7 @@ usage() {
   echo "-k, --kernel    Kernel version to use [Required]"
   echo "-l, --luks    Add cryptsetup to the image"
   echo "-h, --help    Print this fabulous help"
+  echo "-K, --keymap    Add other keymap than en to the initram"
   exit 0
 }
 
@@ -39,6 +40,11 @@ while [ "$#" -gt 0 ] ; do
       ;;
     -g | --gpg)
       GPG=true
+      shift
+      ;;
+    -K | --keymap)
+      KEYMAP=$2
+      shift
       shift
       ;;
     -h | --help)
@@ -138,6 +144,7 @@ doMod() {
 
 [ ! -z $GPG ] && . $ECLODIR/hooks/gpg
 [ ! -z $LUKS ] && . $ECLODIR/hooks/luks
+[ ! -z $KEYMAP ] && . $ECLODIR/hooks/keymap
 
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 if [ -z "$DEVTMPFS" ] ; then
@@ -207,6 +214,12 @@ rescueShell() {
 # Disable kernel log
 echo 0 > /proc/sys/kernel/printk
 clear
+
+#######################################################
+# Keyboard no en if any
+
+[ -f /usr/share/keymaps/keyboard.bin ] &&
+  loadkmap < /usr/share/keymaps/keyboard.bin
 
 #######################################################
 # Modules

@@ -1,0 +1,11 @@
+#!/bin/sh
+
+mkdir -p usr/share/keymaps
+
+loadkeys -b -u $KEYMAP > usr/share/keymaps/keyboard.bin
+if [ $? -eq 0 ] ; then
+  echo "[+] Add $KEYMAP to the initramfs"
+else
+  echo "Fail to add $KEYMAP"
+  exit 1
+fi
