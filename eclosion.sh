@@ -9,6 +9,7 @@ WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
 LOG=/tmp/eclosion.log
 QUIET=true
+CUSTOM=false
 
 ########################################################
 # Cmdline options
@@ -19,6 +20,7 @@ usage() {
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
+  echo "-c, --custom    Edit the file under hook/custom before"
   exit 0
 }
 
@@ -51,6 +53,10 @@ while [ "$#" -gt 0 ] ; do
     -e | --external-key)
       EXT_KEY=$2
       shift
+      shift
+      ;;
+    -c | --custom)
+      CUSTOM=true
       shift
       ;;
     -h | --help)
@@ -200,6 +206,11 @@ for s in $ECLODIR/scripts/init-bottom/* ; do
   chmod +x lib/eclosion/init-bottom/${s##*/}
 done
 
+if [ $CUSTOM == true ] ; then
+  cp $ECLODIR/hook/custom lib/eclosion/
+  chmod +x lib/eclosion/custom
+fi
+
 ########################################################
 # Build the init
 
@@ -283,6 +294,11 @@ else
   BOOTFS=\${BOOT##*=}
   RPOOL=\${BOOTFS%%/*}
 fi
+
+#######################################################
+# If custom hook is enable
+
+[ -f /lib/eclosion/custom ] && . /lib/eclosion/custom
 
 #######################################################
 # Import POOL and dataset
