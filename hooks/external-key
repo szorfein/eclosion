@@ -1,0 +1,22 @@
+#!/bin/sh
+
+addTheKey() {
+  local err
+  mkdir -p root
+  cp -a $EXT_KEY root/
+  err=$?
+  if [ $err -eq 0 ] ; then
+    echo "[+] $EXT_KEY copied at /root/$EXT_KEY"
+    chmod 600 root/$EXT_KEY
+  else
+    echo "[-] Failed to copy your key $EXT_KEY"
+    exit 1
+  fi
+}
+
+if [ -f "$EXT_KEY" ] ; then
+  addTheKey
+else
+  echo "[-] Key $EXT_KEY is no found..."
+  exit 1
+fi

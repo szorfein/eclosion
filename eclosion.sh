@@ -18,6 +18,7 @@ usage() {
   echo "-l, --luks    Add cryptsetup to the image"
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
+  echo "-e, --external-key    Full path of the key file to add directly to the initram"
   exit 0
 }
 
@@ -44,6 +45,11 @@ while [ "$#" -gt 0 ] ; do
       ;;
     -K | --keymap)
       KEYMAP=$2
+      shift
+      shift
+      ;;
+    -e | --external-key)
+      EXT_KEY=$2
       shift
       shift
       ;;
@@ -145,6 +151,7 @@ doMod() {
 [ ! -z $GPG ] && . $ECLODIR/hooks/gpg
 [ ! -z $LUKS ] && . $ECLODIR/hooks/luks
 [ ! -z $KEYMAP ] && . $ECLODIR/hooks/keymap
+[ ! -z $EXT_KEY ] && . $ECLODIR/hooks/external-key
 
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 if [ -z "$DEVTMPFS" ] ; then
