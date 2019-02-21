@@ -17,6 +17,7 @@ CUSTOM=false
 usage() {
   echo "-k, --kernel    Kernel version to use [Required]"
   echo "-l, --luks    Add cryptsetup to the image"
+  echo "-g, --gpg    Add gpg-1 to the image"
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
