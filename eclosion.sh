@@ -208,7 +208,7 @@ for s in $ECLODIR/scripts/init-bottom/* ; do
 done
 
 if [ $CUSTOM == true ] ; then
-  cp $ECLODIR/hook/custom lib/eclosion/
+  cp $ECLODIR/hooks/custom lib/eclosion/
   chmod +x lib/eclosion/custom
 fi
 
