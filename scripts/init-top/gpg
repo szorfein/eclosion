@@ -1,8 +1,10 @@
 #!/bin/sh
 
+# Can't find tty without this
+mv /dev/tty /dev/bak && cp -a /dev/console /dev/tty
+
 GPG_TTY=$(tty)
 export GPG_TTY
 
 # Connect the gpg-agent
-#gpg-connect-agent /bye
-
+gpg-connect-agent /bye

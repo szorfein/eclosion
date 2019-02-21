@@ -276,6 +276,12 @@ fi
 . /lib/eclosion/init-top/udev
 
 #######################################################
+# Other hooks
+
+[ -f /lib/eclosion/init-top/gpg ] && 
+  . /lib/eclosion/init-top/gpg
+
+#######################################################
 # Kernel args
 
 for x in \$(cat /proc/cmdline) ; do
@@ -312,6 +318,8 @@ fi
 
 . /lib/eclosion/init-bottom/udev
 . /lib/eclosion/init-bottom/mdev
+[ -f /lib/eclosion/init-bottom/gpg ] && 
+  . /lib/eclosion/init-bottom/gpg
 
 # cleanup
 for dir in /run /sys /proc ; do

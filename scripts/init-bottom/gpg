@@ -1,2 +1,7 @@
+#!/bin/sh
+
+# Restore the bad tty (necessary ?)
+rm /dev/tty && mv -f /dev/bak /dev/tty
+
 # kill the agent
 gpgconf --kill gpg-agent
