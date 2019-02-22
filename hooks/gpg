@@ -2,6 +2,18 @@
 
 mkdir -p usr/share/gnupg root/.gnupg usr/bin
 
+bins+=" gpg gpg-agent gpgconf gpg-connect-agent pinentry-crurses"
 modules+=" cast5"
+
+# Make the link of pinentry
+cd usr/bin && ln -s pinentry-curses pinentry && cd $WORKDIR
+
+# Configure the agent
+cat > root/.gnupg/gpg.conf << EOF
+use-agent
+pinentry-mode loopback
+EOF
+
+echo "allow-loopback-pinentry" > root/.gnupg/gpg-agent.conf
 
 chmod 700 root/.gnupg
