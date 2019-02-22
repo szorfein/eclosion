@@ -3,7 +3,7 @@
 addTheKey() {
   local err
   mkdir -p root
-  cp -a $EXT_KEY root/${EXT_KEY##*/}
+  cp -a $EXT_KEY root/${EXT_KEY##*/} 2>>$LOG
   err=$?
   if [ $err -eq 0 ] ; then
     echo "[+] $EXT_KEY copied at /root/${EXT_KEY##*/}"

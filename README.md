@@ -26,6 +26,9 @@ And a kernel version `4.14.80-gentoo`:
 An example, edit the file `hook/custom` to add your own instruction to decrypt your zpool, you can add the function `rescueShell "custom message"` if something bad happens:
 
 ```sh
+# Clear message
+clear 
+
 # create the directory your need
 mkdir -p /mnt/cryptboot
 
@@ -44,6 +47,9 @@ gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
 cryptsetup --keyfile-offset 6668 --keyfile-size 8192 --key-file /dev/mapper/lukskey \
   --header /mnt/cryptboot/header.img open --type luks \
   /dev/disk/by-id/ata-HARDDISK-part3 zfs-enc || rescueShell "Fail to decrypt zfs-enc"
+
+# demount / clear
+cryptsetup close lukskey
 ```
 Save and quit.  
 The init script will continous to open your zpool.

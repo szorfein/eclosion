@@ -7,7 +7,7 @@ ECLODIR=$(pwd)
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
-LOG=/tmp/eclosion.log
+LOG=$ECLODIR/build-img.log
 QUIET=true
 CUSTOM=false
 
@@ -144,7 +144,7 @@ doMod() {
         mkdir -p .${lib_dir}/${m%/*} && cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
       done
     else
-      echo "[-] ${mod} kernel module not found"
+      echo "[-] ${mod} kernel module not found" >>$LOG
     fi
   done
 }
@@ -341,7 +341,7 @@ chmod u+x init
 # Create the initramfs
 if [ $QUIET == true ] ; then
   find . -print0 | cpio --null -ov --format=newc 2>>$LOG | gzip -9 > ../eclosion-initramfs.img
-  echo -e "\nImage size $(tail -n 1 $LOG)"
+  echo "[+] Build image size $(tail -n 1 $LOG)"
 else
   find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
 fi
