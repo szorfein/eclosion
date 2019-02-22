@@ -2,7 +2,7 @@
 
 mkdir -p usr/share/gnupg root/.gnupg usr/bin
 
-bins+=" gpg gpg-agent gpgconf gpg-connect-agent pinentry-crurses"
+bins+=" gpg gpg-agent gpgconf gpg-connect-agent pinentry-curses"
 modules+=" cast5"
 
 # Make the link of pinentry

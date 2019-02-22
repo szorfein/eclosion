@@ -2,15 +2,20 @@
 An initramfs for ZFS and gentoo. 
 
 ## Status
-+ Can boot on a normal zfs system (without encryption) for now...
++ Can boot on a normal zfs system and a custom hook
+
 Still under building | testing :)
 
 ## Usage
-
-You do not need to define a pool with `bootfs`.
+For a hypothetical zpool named `zfsforninja`:
 
     $ zpool status | grep pool
       pool: zfsforninja
+
+And a kernel version `4.14.80-gentoo`:
+
+    $ ls /lib/modules
+      4.14.80-gentoo
 
 ### 1. Normal root ZFS
 
