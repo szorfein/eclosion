@@ -1,32 +1,6 @@
 #!/bin/sh
 
-source /etc/portage/make.conf
-
-GPG_BIN=$WORKDIR/bin/gpg
-if [ ! -x $ECLODIR_STATIC/gpg ] ; then
-  PKG=app-crypt/gnupg
-  GPG_EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
-  GPG_EBUILD=${GPG_EBUILD##*/}
-  echo "[+] Building $GPG_EBUILD, plz wait ..."
-  USE="nls static" ebuild /usr/portage/$PKG/$GPG_EBUILD clean unpack compile
-  if [ $? -ne 0 ] ; then
-    echo "[-] Failed to build $GPG_EBUILD"
-    exit 1
-  fi
-  (cp /var/tmp/portage/${PKG%/*}/${GPG_EBUILD%.*}/work/${GPG_EBUILD%.*}/g10/gpg $ECLODIR_STATIC/gpg)
-  (cp -a /var/tmp/portage/${PKG%/*}/${GPG_EBUILD%.*}/work/${GPG_EBUILD%.*}/g10/options.skel $ECLODIR_STATIC/options.skel)
-  ebuild /usr/portage/$PKG/$GPG_EBUILD clean
-elif ldd $ECLODIR_STATIC/gpg >/dev/null ; then
-  echo "[-] gpg is not static"
-  exit 1
-else
-  echo "[+] gpg found" >>$LOG
-fi
-
 mkdir -p usr/share/gnupg root/.gnupg usr/bin
-
-cp -a $ECLODIR_STATIC/gpg $GPG_BIN
-cp -a $ECLODIR_STATIC/options.skel usr/share/gnupg/
 
 modules+=" cast5"
 
