@@ -1,10 +1,17 @@
 #!/bin/sh
 
+# Create a socket file for gpg-agent
+# https://www.linuxquestions.org/questions/linux-security-4/gpg-gpg-agent-can%27t-connect-to-root-gnupg-s-gpg-agent-611843/
+mknod -m 700 ~/.gnupg/S.gpg-agent p
+
 # Can't find tty without this
-mv /dev/tty /dev/bak && cp -a /dev/console /dev/tty
+mv /dev/tty /dev/tty-bak && cp -a /dev/console /dev/tty
 
 GPG_TTY=$(tty)
 export GPG_TTY
 
+# gpg agent
+# https://bugzilla.redhat.com/show_bug.cgi?id=1221234
+
 # Connect the gpg-agent
-gpg-connect-agent /bye
+#gpg-connect-agent /bye

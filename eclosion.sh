@@ -223,6 +223,7 @@ INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="$modules"
 UDEVD=$UDEVD
+export HOME=/root
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 
 rescueShell() {
