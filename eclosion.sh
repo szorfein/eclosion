@@ -78,6 +78,14 @@ if [ ! -d /lib/modules/$KERNEL ] ; then
 fi
 
 ########################################################
+# Check root
+
+if [ $(id -u) -ne 0 ] ; then
+  echo "[-] Run this program as a root pls" 
+  exit 1
+fi
+
+########################################################
 # Install $WORKDIR
 
 [[ -d $WORKDIR ]] && rm -rf $WORKDIR/*

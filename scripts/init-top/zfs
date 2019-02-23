@@ -12,6 +12,7 @@ zpoolMount() {
       return 0
     fi
   done
+  rescueShell "Fail to import $RPOOL at $ROOT"
 }
 
 zpoolMount

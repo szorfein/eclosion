@@ -1,4 +1,5 @@
 *.swp
 *.swo
+*.log
 hooks/custom
 static/*
