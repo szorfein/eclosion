@@ -19,7 +19,7 @@ And a kernel version `4.14.80-gentoo`:
 
 ### 1. Normal root ZFS
 
-+ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo `
++ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
 + Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo `
 ### 2. Full disk encryption with custom hook and gpg key on the initram
 
@@ -54,7 +54,7 @@ cryptsetup close lukskey
 Save and quit.  
 The init script will continous to open your zpool.
 
-+ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo `
++ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
 + Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo --gpg --luks --external-key /boot/key.gpg --keyboard fr-latin9 --custom `
 
 The external key will be copied on the initram at `/root/`

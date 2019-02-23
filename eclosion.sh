@@ -226,8 +226,6 @@ fi
 cat > init << EOF
 #!/bin/sh
 
-# TODO: Later from /proc/cmdline
-INIT=/lib/systemd/systemd
 ROOT=$ROOT
 MODULES="$modules"
 UDEVD=$UDEVD
@@ -295,9 +293,8 @@ fi
 
 for x in \$(cat /proc/cmdline) ; do
   case \$x in
-    root=ZFS=*)
-      BOOT=\$x
-    ;;
+    root=ZFS=*) BOOT=\$x ;;
+    init=*) INIT=\${x#*=} ;;
   esac
 done
 
