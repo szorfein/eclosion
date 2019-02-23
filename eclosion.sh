@@ -10,6 +10,7 @@ ROOT=/mnt/root
 LOG=$ECLODIR/build-img.log
 QUIET=true
 CUSTOM=false
+INITRAMFS_NAME="initramfs-linux"
 
 ########################################################
 # Cmdline options
@@ -239,10 +240,9 @@ rescueShell() {
 
 # Disable kernel log
 echo 0 > /proc/sys/kernel/printk
-clear
 
 #######################################################
-# Keyboard no en if any
+# if keyboard other than english
 
 [ -f /usr/share/keymaps/keyboard.bin ] &&
   loadkmap < /usr/share/keymaps/keyboard.bin
@@ -298,12 +298,11 @@ for x in \$(cat /proc/cmdline) ; do
   esac
 done
 
-# Search a line like root=ZFS=zfsforninja/ROOT/gentoo
 if [ -z \$BOOT ] ; then
   rescueShell "No pool defined has kernel cmdline"
 else
-  # if root=ZFS=zfsforninja/ROOT/gentoo, become
-  #         zfsforninja/ROOT/gentoo
+  # change root=ZFS=zfsforninja/ROOT/gentoo, in
+  # zfsforninja/ROOT/gentoo
   BOOTFS=\${BOOT##*=}
   RPOOL=\${BOOTFS%%/*}
 fi
@@ -322,10 +321,11 @@ fi
 #######################################################
 # Cleanup and switch
 
-. /lib/eclosion/init-bottom/udev
-. /lib/eclosion/init-bottom/mdev
 [ -f /lib/eclosion/init-bottom/gpg ] && 
   . /lib/eclosion/init-bottom/gpg
+
+. /lib/eclosion/init-bottom/udev
+. /lib/eclosion/init-bottom/mdev
 
 # cleanup
 for dir in /run /sys /proc ; do
@@ -345,13 +345,13 @@ chmod u+x init
 
 # Create the initramfs
 if [ $QUIET == true ] ; then
-  find . -print0 | cpio --null -ov --format=newc 2>>$LOG | gzip -9 > ../eclosion-initramfs.img
+  find . -print0 | cpio --null -ov --format=newc 2>>$LOG | gzip -9 > ../$INITRAMFS_NAME.img
   echo "[+] Build image size $(tail -n 1 $LOG)"
 else
-  find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../eclosion-initramfs.img
+  find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../$INITRAMFS_NAME.img
 fi
 
 cd ..
-echo "[+] initramfs created at $(pwd)/eclosion-initramfs.img"
+echo "[+] initramfs created at $(pwd)/$INITRAMFS_NAME.img"
 
 exit 0

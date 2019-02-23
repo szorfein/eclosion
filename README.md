@@ -55,7 +55,7 @@ Save and quit.
 The init script will continous to open your zpool.
 
 + Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
-+ Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo --gpg --luks --external-key /boot/key.gpg --keyboard fr-latin9 --custom `
++ Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo --gpg --luks --external-key /boot/key.gpg --keymap fr-latin9 --custom `
 
 The external key will be copied on the initram at `/root/`
 
