@@ -10,7 +10,6 @@ ROOT=/mnt/root
 LOG=$ECLODIR/build-img.log
 QUIET=true
 CUSTOM=false
-INITRAMFS_NAME="initramfs-linux"
 
 ########################################################
 # Cmdline options
@@ -342,6 +341,8 @@ rescueShell "Yaaa, it is sucks"
 EOF
 
 chmod u+x init
+
+INITRAMFS_NAME="initramfs-$KERNEL"
 
 # Create the initramfs
 if [ $QUIET == true ] ; then

@@ -61,7 +61,7 @@ The external key will be copied on the initram at `/root/`
 
 ## Thanks
 + [gentoo-custom-initramfs](https://wiki.gentoo.org/wiki/Custom_Initramfs)
-+ [gentoo-custome-initramfs-examples](https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples)
++ [gentoo-custom-initramfs-examples](https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples)
 + [mkinitramfs-ll](https://github.com/tokiclover/mkinitramfs-ll)
 + [linuxfromscratch](http://www.linuxfromscratch.org/blfs/view/svn/postlfs/initramfs.html)
 + [mdev-like-a-boss](https://github.com/slashbeast/mdev-like-a-boss)
