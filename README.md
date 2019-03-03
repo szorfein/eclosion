@@ -10,7 +10,7 @@ A minimalist and powerfull initramfs for ZFS and gentoo.
 + External key into the initramfs
 + mdev, devtmpfs and udev
 + No complex doc usage
-+ Simple cmdline (only 2 args required) with no fucking symbols `,+:;({.*_-})`
++ Simple cmdline (only 2 args required) with no ugly symbols `,+:;({.*_-})`
 
 ## Usage
 For a hypothetical zpool named `zfsforninja`:
@@ -40,7 +40,10 @@ mkdir -p /mnt/cryptboot
 
 # decrypt the boot partition
 gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
-  /dev/disk/by-id/ata-HARDDISK-part1 cryptboot || rescueShell "cryptboot fail to mount"
+  /dev/disk/by-id/ata-HARDDISK-part1 cryptboot
+
+# check if the block device /dev/mapper/cryptboot exist
+[ ! -b /dev/mapper/cryptboot ] && rescueShell "cryptboot doesn't exist"
 
 # mount the boot partition
 mount /dev/mapper/cryptboot /mnt/cryptboot
