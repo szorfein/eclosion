@@ -4,7 +4,7 @@
 mv /dev/tty /dev/tty-bak && cp -a /dev/console /dev/tty
 
 # Daemonize the agent
-gpg-agent --homedir /root/.gnupg --use-standard-socket --daemon
+gpg-agent --homedir /root/.gnupg --quiet --daemon
 
 # Connect the gpg-agent
 gpg-connect-agent /bye
