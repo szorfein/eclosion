@@ -199,7 +199,7 @@ done
 ########################################################
 # Copy the modules.dep
 
-cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/
+cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/modules.dep
 
 ########################################################
 # Copy scripts

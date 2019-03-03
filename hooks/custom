@@ -1,3 +1,11 @@
 #!/bin/sh
 
 # A custom hook if you have complicated things to do :)
+
+mkdir -p /mnt/usb
+
+mount -t vfat /dev/disk/by-uuid/5761-C7DA /mnt/usb
+
+gpg -qd /mnt/usb/key.gpg | cryptsetup -v --key-file=- open --type luks /dev/disk/by-uuid/31c5f8e8-7a5f-4169-a10f-6bf1517f9ee3 zfs-enc || rescueShell "fail to mount zpool"
+
+umount /mnt/usb
