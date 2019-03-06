@@ -3,7 +3,11 @@
 ########################################################
 # Program Vars
 
-ECLODIR=$(pwd)
+if [ -d /lib/eclosion ] ; then
+  ECLODIR=/lib/eclosion
+else
+  ECLODIR=$(pwd)
+fi
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
@@ -199,6 +203,7 @@ done
 ########################################################
 # Copy the modules.dep
 
+mkdir -p lib/modules/$KERNEL
 cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/modules.dep
 
 ########################################################
