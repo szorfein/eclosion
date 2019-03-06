@@ -9,9 +9,10 @@ BIN_DIR=$(DESTDIR)usr/bin
 LIB_DIR=$(DESTDIR)lib
 DOC_DIR=$(DESTDIR)usr/share/doc
 
-.PHONY: all
+.PHONY: _all
+_all:
 
-install:
+install: _all
 	install -Dm644 README.md $(DOC_DIR)/$(PROGRAM_NAME)/README.md
 	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/{hooks,scripts,static}
