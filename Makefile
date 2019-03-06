@@ -5,9 +5,9 @@ ifndef DESTDIR
 	DESTDIR := /
 endif
 
-BIN_DIR=$(DESTDIR)usr/bin
-LIB_DIR=$(DESTDIR)lib
-DOC_DIR=$(DESTDIR)usr/share/doc
+BIN_DIR=${DESTDIR}usr/bin
+LIB_DIR=${DESTDIR}lib
+DOC_DIR=${DESTDIR}usr/share/doc
 
 install:
 	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
