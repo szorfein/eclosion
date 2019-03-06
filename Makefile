@@ -5,13 +5,13 @@ ifndef DESTDIR
 	DESTDIR := /
 endif
 
-BIN_DIR=${DESTDIR}usr/bin
-LIB_DIR=${DESTDIR}lib
-DOC_DIR=${DESTDIR}usr/share/doc
+BIN_DIR=$(DESTDIR)usr/bin
+LIB_DIR=$(DESTDIR)lib
+DOC_DIR=$(DESTDIR)usr/share/doc
 
 install:
-	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
 	install -Dm644 README.md $(DOC_DIR)/$(PROGRAM_NAME)/README.md
+	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/{hooks,scripts,static}
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-{top,bottom}/
 	install -Dm744 hooks/* $(LIB_DIR)/$(PROGRAM_NAME)/hooks/
