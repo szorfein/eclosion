@@ -46,16 +46,20 @@ gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
 [ ! -b /dev/mapper/cryptboot ] && rescueShell "cryptboot doesn't exist"
 
 # mount the boot partition
-mount /dev/mapper/cryptboot /mnt/cryptboot
+mount /dev/mapper/cryptboot /mnt/cryptboot || rescueShell "Fail to mount cryptboot"
 
 # decrypt an other key
 gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
-  /mnt/cryptboot/key.img lukskey || rescueShell "lukskey fail too"
+  /mnt/cryptboot/key.img lukskey 
+  
+[[ ! -b /dev/mapper/lukskey ]] && rescueShell "lukskey fail too"
 
 # use the other key to open the final crypted device with offset, external header, etc...
 cryptsetup --keyfile-offset 6668 --keyfile-size 8192 --key-file /dev/mapper/lukskey \
   --header /mnt/cryptboot/header.img open --type luks \
-  /dev/disk/by-id/ata-HARDDISK-part3 zfs-enc || rescueShell "Fail to decrypt zfs-enc"
+  /dev/disk/by-id/ata-HARDDISK-part3 zfs-enc
+  
+[[ ! -b /dev/mapper/zfs-enc ]] && rescueShell "Fail to decrypt zfs-enc"
 
 # demount / clear
 cryptsetup close lukskey
