@@ -18,7 +18,6 @@ install:
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/{hooks,scripts,static}
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-{top,bottom}/
 	install -Dm744 hooks/* $(LIB_DIR)/$(PROGRAM_NAME)/hooks/
-	install -Dm744 static/* $(LIB_DIR)/$(PROGRAM_NAME)/static/
 	install -Dm744 scripts/init-top/* $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-top/
 	install -Dm744 scripts/init-bottom/* $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-bottom/
 
