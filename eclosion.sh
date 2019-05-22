@@ -180,8 +180,9 @@ fi
 ########################################################
 # libgcc_s.so.1 required by zfs
 
-search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1)
-if [[ -n $search_lib ]] ; then
+gcc_version=$(gcc --version | head -n 1 | awk '{print $6}')
+
+if search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1 | grep $gcc_version) ; then
   bin+=" $search_lib"
   cp ${search_lib} usr/lib64/libgcc_s.so.1
 else
