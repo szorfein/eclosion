@@ -2,10 +2,27 @@
 
 # A custom hook if you have complicated things to do :)
 
-mkdir -p /mnt/usb
+USB_MOUNTPOINT=/mnt/usb
+PATH_KEY=/root/key.gpg
+CRYPTBOOT_DEV=/dev/disk/by-id/usb-...-part2
+ZPOOL_DEV=/dev/disk/by-id/ata-ST...
+KEY_OFFSET=512
+KEY_SIZE=8192
 
-mount -t vfat /dev/disk/by-uuid/5761-C7DA /mnt/usb
+mkdir -p $USB_MOUNTPOINT
 
-gpg -qd /mnt/usb/key.gpg | cryptsetup -v --key-file=- open --type luks /dev/disk/by-uuid/31c5f8e8-7a5f-4169-a10f-6bf1517f9ee3 zfs-enc || rescueShell "fail to mount zpool"
+gpg -qd $PATH_KEY | cryptsetup -v --key-file=- open --type luks $CRYPTBOOT_DEV cryptboot
 
-umount /mnt/usb
+[[ ! -b /dev/mapper/cryptboot ]] && rescueShell "Fail to open cryptboot"
+
+mount -t ext4 /dev/mapper/cryptboot $USB_MOUNTPOINT
+
+gpg -qd $PATH_KEY | cryptsetup -v --key-file=- open --type luks $USB_MOUNTPOINT/key.img lukskey
+
+[[ ! -b /dev/mapper/lukskey ]] && rescueShell "Fail to open lukskey"
+
+cryptsetup -v --header $USB_MOUNTPOINT/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=$KEY_OFFSET --keyfile-size=$KEY_SIZE open --type luks $ZPOOL_DEV zfs-enc
+
+[[ ! -b /dev/mapper/zfs-enc ]] && rescueShell "Fail to open zfs-enc"
+
+cryptsetup close lukskey
