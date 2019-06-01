@@ -128,20 +128,24 @@ modules="zlib_deflate spl zavl znvpair zcommon zunicode icp zfs"
 
 doBin() {
   local lib bin link
-  bin=$(which $1 2>/dev/null)
-  [[ $? -ne 0 ]] && bin=$1
-  for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
-    echo "[+] Copying lib $lib to .$lib ... " >>$LOG
-    if [ -h $lib ] ; then
-      link=$(readlink $lib)
-      echo "Found a link $lib == ${lib%/*}/$link" >>$LOG
-      cp -a $lib .$lib
-      cp -a ${lib%/*}/$link .${lib%/*}/$link
-    elif [ -x $lib ] ; then
-      echo "Found binary $lib" >>$LOG
-      cp -a $lib .$lib
-    fi
-  done
+  if bin=$(which $1) ; then
+    bin=$1
+    for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
+      echo "[+] Copying lib $lib to .$lib ... " >>$LOG
+      if [ -h $lib ] ; then
+        link=$(readlink $lib)
+        echo "Found a link $lib == ${lib%/*}/$link" >>$LOG
+        cp -a $lib .$lib
+        cp -a ${lib%/*}/$link .${lib%/*}/$link
+      elif [ -x $lib ] ; then
+        echo "Found binary $lib" >>$LOG
+        cp -a $lib .$lib
+      fi
+    done
+  else
+    echo "$1 is no found, you should install this package"
+    exit 1
+  fi
 }
 
 doMod() {
