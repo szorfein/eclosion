@@ -129,7 +129,6 @@ modules="zlib_deflate spl zavl znvpair zcommon zunicode icp zfs"
 doBin() {
   local lib bin link
   if bin=$(which $1) ; then
-    bin=$1
     for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
       echo "[+] Copying lib $lib to .$lib ... " >>$LOG
       if [ -h $lib ] ; then
