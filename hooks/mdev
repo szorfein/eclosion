@@ -3,9 +3,6 @@
 ########################################################
 # Mdev Setup
 
-# mdev and udev need /etc/group
-cp -a /etc/group etc/group
-
 cat > etc/mdev.conf << EOF
 \$MODALIAS=.*	0:0 660 @modprobe "\$MODALIAS"
 

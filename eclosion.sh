@@ -168,17 +168,23 @@ doMod() {
 # Install hooks
 
 . $ECLODIR/hooks/busybox
-. $ECLODIR/hooks/udev
+
+# mdev or udev
+DEVTMPFS=$(grep devtmpfs /proc/filesystems)
+
+# mdev and udev need /etc/group
+cp -a /etc/group etc/group
+
+if [ -z "$DEVTMPFS" ] ; then
+  . $ECLODIR/hooks/mdev
+else
+  . $ECLODIR/hooks/udev
+fi
 
 [ ! -z $GPG ] && . $ECLODIR/hooks/gpg
 [ ! -z $LUKS ] && . $ECLODIR/hooks/luks
 [ ! -z $KEYMAP ] && . $ECLODIR/hooks/keymap
 [ ! -z $EXT_KEY ] && . $ECLODIR/hooks/external-key
-
-DEVTMPFS=$(grep devtmpfs /proc/filesystems)
-if [ -z "$DEVTMPFS" ] ; then
-  . $ECLODIR/hooks/mdev
-fi
 
 ########################################################
 # libgcc_s.so.1 required by zfs
