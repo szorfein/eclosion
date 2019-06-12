@@ -252,9 +252,6 @@ rescueShell() {
   /bin/sh -l
 }
 
-# Disable kernel log
-echo 0 > /proc/sys/kernel/printk
-
 #######################################################
 # if keyboard other than english
 
@@ -301,6 +298,12 @@ fi
 
 [ -f /lib/eclosion/init-top/gpg ] && 
   . /lib/eclosion/init-top/gpg
+
+#######################################################
+# kernel log
+
+# Disable kernel log
+echo 0 > /proc/sys/kernel/printk
 
 #######################################################
 # Kernel args
