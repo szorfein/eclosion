@@ -142,7 +142,7 @@ doBin() {
       fi
     done
   else
-    echo "$1 is no found, you should install this package"
+    echo "no $1 found on the system, please install"
     exit 1
   fi
 }
@@ -252,6 +252,9 @@ rescueShell() {
   /bin/sh -l
 }
 
+# Disable kernel log
+dmesg=
+
 #######################################################
 # if keyboard other than english
 
@@ -264,7 +267,7 @@ rescueShell() {
 # Load modules
 if [ -n "\$MODULES" ]; then
   for m in \$MODULES ; do
-    modprobe -q \$m
+    modprobe \$m 2>/dev/null
   done
 else
   rescueShell "No modules found"
@@ -298,12 +301,6 @@ fi
 
 [ -f /lib/eclosion/init-top/gpg ] && 
   . /lib/eclosion/init-top/gpg
-
-#######################################################
-# kernel log
-
-# Disable kernel log
-echo 0 > /proc/sys/kernel/printk
 
 #######################################################
 # Kernel args
