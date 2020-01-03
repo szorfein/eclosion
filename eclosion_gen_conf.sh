@@ -60,11 +60,6 @@ detect_kernel() {
   echo $KERNEL_LIST
 }
 
-checkRoot() {
-  [ "$(id -u)" -ne 0 ] &&
-    die "I need better permission to mount your boot partition"
-}
-
 # used by efibootmgr
 # find uuid: ls -l /dev/disk/by-uuid/ | grep sdc1 | awk '{print $9}'
 # lsblk -f | grep sdc1 | awk '{print $3}'
@@ -102,9 +97,10 @@ detect_cmdline() {
     CUSTOM_CMDLINE="${OLD_CUSTOM_CMDLINE#*=}"
     add_conf CUSTOM_CMDLINE="$CUSTOM_CMDLINE"
   fi
+  add_conf "# do not change this line, post an issue if incorrect please"
   CMDLINE="init=$INIT root=ZFS=$ZPOOL $(echo $CUSTOM_CMDLINE | tr -d "'\"")"
   echo "$CMDLINE"
-  add_conf CMDLINE="$CMDLINE"
+  add_conf CMDLINE=\""$CMDLINE"\"
   unset CMDLINE INIT ZPOOL
 }
 
@@ -119,7 +115,8 @@ eclosion_args() {
   fi
   ECLOSION_ARGS="--kernel $KERNEL_LIST $(echo $CUSTOM_ECLOSION_ARGS | tr -d "'\"")"
   echo "$ECLOSION_ARGS"
-  add_conf ECLOSION_ARGS="$ECLOSION_ARGS"
+  add_conf "# do not change this line, post an issue if incorrect please"
+  add_conf ECLOSION_ARGS=\""$ECLOSION_ARGS\""
   unset ECLOSION_ARGS KERNEL_LIST
 }
 
@@ -150,8 +147,12 @@ if [ -f $ROOT_CONF ] ; then
     echo "no change"
     exit 0
   else
-    diff $ROOT_CONF $CONF
-    read -p "apply change ?"
+    echo "Differences between config files..."
+    # hack to display diff without produce error
+    for i in "$(diff $ROOT_CONF $CONF)"; do
+      echo "$i"
+    done
+    read -p "Apply change ? "
     if [[ $REPLY =~ ^y|^Y ]] ; then
       echo "Copying the new file..."
     else

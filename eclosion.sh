@@ -25,7 +25,7 @@ usage() {
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
-  echo "-c, --custom    Edit the file under hook/custom before"
+  echo "-c, --custom    Copy the custom script to the image (/lib/eclosion/hooks/custom)"
   exit 0
 }
 
