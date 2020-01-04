@@ -9,8 +9,14 @@ A minimalist and powerfull initramfs for ZFS and gentoo.
 + Custom hook
 + External key into the initramfs
 + mdev, devtmpfs and udev
-+ No complex doc usage
++ No complex doc
 + Simple cmdline (only 2 args required) with no ugly symbols `,+:;({.*_-})`
+
+## Install
+
+    # git clone https://github.com/szorfein/eclosion
+    # cd eclosion
+    # make install
 
 ## Usage
 For a hypothetical zpool named `zfsforninja`:
@@ -26,51 +32,10 @@ And a kernel version `4.14.80-gentoo`:
 ### 1. Normal root ZFS
 
 + Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
-+ Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo `
++ Build cmd : ` eclosion.sh --kernel 4.14.80-gentoo `
 
-### 2. Full disk encryption with custom hook and gpg key on the initram
-An example, edit the file `hook/custom` to add your own instruction to decrypt your zpool, you can add the function `rescueShell "custom message"` if something bad happens:
-
-```sh
-# Clear message
-clear 
-
-# create the directory your need
-mkdir -p /mnt/cryptboot
-
-# decrypt the boot partition
-gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
-  /dev/disk/by-id/ata-HARDDISK-part1 cryptboot
-
-# check if the block device /dev/mapper/cryptboot exist
-[ ! -b /dev/mapper/cryptboot ] && rescueShell "cryptboot doesn't exist"
-
-# mount the boot partition
-mount /dev/mapper/cryptboot /mnt/cryptboot || rescueShell "Fail to mount cryptboot"
-
-# decrypt an other key
-gpg -qd /root/key.gpg | cryptsetup -v --key-file=- open --type luks \
-  /mnt/cryptboot/key.img lukskey 
-  
-[[ ! -b /dev/mapper/lukskey ]] && rescueShell "lukskey fail too"
-
-# use the other key to open the final crypted device with offset, external header, etc...
-cryptsetup --keyfile-offset 6668 --keyfile-size 8192 --key-file /dev/mapper/lukskey \
-  --header /mnt/cryptboot/header.img open --type luks \
-  /dev/disk/by-id/ata-HARDDISK-part3 zfs-enc
-  
-[[ ! -b /dev/mapper/zfs-enc ]] && rescueShell "Fail to decrypt zfs-enc"
-
-# demount / clear
-cryptsetup close lukskey
-```
-Save and quit.  
-The init script will continous to open your zpool.
-
-+ Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
-+ Build cmd : ` ./eclosion.sh --kernel 4.14.80-gentoo --gpg --luks --external-key /boot/key.gpg --keymap fr-latin9 --custom `
-
-The external key will be copied on the initram at `/root/`
+### 2. Full disk encryption with custom hook, external header/gpg key.
+Look the [doc](https://github.com/szorfein/eclosion/tree/master/docs/custom-hook).
 
 ## Thanks
 + Gentoo docs: [gentoo-custom-initramfs](https://wiki.gentoo.org/wiki/Custom_Initramfs), [gentoo-custom-initramfs-examples](https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples)
