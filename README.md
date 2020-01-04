@@ -45,3 +45,7 @@ Full disk encryption with custom hook, external header and gpg key: [doc](https:
 + [zfsonlinux](https://github.com/zfsonlinux/zfs/tree/master/contrib/initramfs)
 + [salsa.debian](https://salsa.debian.org/systemd-team/systemd/tree/master/debian/extra/initramfs-tools)
 + [genkernel-next](https://github.com/Sabayon/genkernel-next)
+
+### Support
+Any support will be greatly appreciated, star the repo, coffee, donation... thanks you !   
+<a href="https://www.patreon.com/szorfein"><img src="https://img.shields.io/badge/don-patreon-ab69f4"></a>  

@@ -5,6 +5,7 @@ set -ue
 CONF=~/eclosion.conf
 ROOT_CONF=/etc/eclosion/eclosion.conf
 OLD_ZPOOL=""
+OLD_EFI_PARTITION=""
 OLD_CUSTOM_CMDLINE=""
 OLD_CUSTOM_ECLOSION_ARGS=""
 
@@ -12,6 +13,10 @@ OLD_CUSTOM_ECLOSION_ARGS=""
 if [ -f $ROOT_CONF ] ; then
   if grep ^ZPOOL $ROOT_CONF >/dev/null ; then
     OLD_ZPOOL="$(grep ^ZPOOL $ROOT_CONF)"
+  fi
+  if grep ^EFI_PARTITION $ROOT_CONF >/dev/null ; then
+    OLD_EFI_PARTITION="$(grep ^EFI_PARTITION $ROOT_CONF)"
+    OLD_EFI_PARTITION="${OLD_EFI_PARTITION#*=}"
   fi
   if grep ^CUSTOM_CMDLINE $ROOT_CONF >/dev/null ; then
     OLD_CUSTOM_CMDLINE="$(grep ^CUSTOM_CMDLINE $ROOT_CONF)"
@@ -60,22 +65,36 @@ detect_kernel() {
   echo $KERNEL_LIST
 }
 
-detect_boot_partition() {
-    :
+check_efi_partition() {
+  # CHECK BY LABEL , UUID , PARTUUID , PARTLABEL
+  FSTAB=$(grep -i efi /etc/fstab | awk '{print $1}')
+  # lsblk work only if there are only one vfat device plugged...
+  LSBLK=$(lsblk -f | grep vfat | awk '{print $3}')
+  BLKID=
+
+  if [ ! -z $FSTAB ] ; then
+    OLD_EFI_PARTITION=$FSTAB
+  elif [ $(id -u) -eq 0 ] ; then
+    # blkid (work but require a root access)
+    BLKID=$(blkid | grep PARTLABEL=\"EFI | grep -o ' UUID="[0-9A-Za-z-]*"' | tr -d " ")
+    [ ! -z $BLKID ] && OLD_EFI_PARTITION=$BLKID
+  elif [ ! -z $LSBLK ] ; then
+    OLD_EFI_PARTITION="UUID=$LSBLK"
+  else
+    die "Unable to found your efi partition in fstab, blkid and lsblk"
+  fi
+  unset FSTAB BLKID LSBLK
 }
 
 # used by efibootmgr
-# find uuid: ls -l /dev/disk/by-uuid/ | grep sdc1 | awk '{print $9}'
-# lsblk -f | grep sdc1 | awk '{print $3}'
 detect_partition() {
-  BOOT_PARTITION=/dev/$(lsblk -f | grep vfat | grep -o "s[a-z0-9]*")
-  BOOT_DISK=$(echo $BOOT_PARTITION | tr -d "[0-9]+")
-  BOOT_PARTITION_NUMBER=$(echo $BOOT_PARTITION | grep -o "[0-9]")
-  add_conf "# Disk fat32 $BOOT_PARTITION used by efibootmgr"
-  add_conf BOOT_DISK=$BOOT_DISK
-  add_conf BOOT_PARTITION_NUMBER=$BOOT_PARTITION_NUMBER
-  echo $BOOT_PARTITION
-  unset BOOT_PARTITION BOOT_DISK BOOT_PARTITION_NUMBER
+  [ -z $OLD_EFI_PARTITION ] && check_efi_partition
+  [ ! $(findfs $OLD_EFI_PARTITION 2>/dev/null) ] && die "$OLD_EFI_PARTITION is no found."
+  EFI_PARTITION="${OLD_EFI_PARTITION}"
+  add_conf "# Your EFI partition here by LABEL, UUID, PARTUUID, etc..."
+  add_conf EFI_PARTITION=$EFI_PARTITION
+  echo $EFI_PARTITION
+  unset EFI_PARTITION
 }
 
 detect_init() {
@@ -130,7 +149,7 @@ detect_zpool
 echo -ne "Check your kernel...\t\t"
 detect_kernel
 
-echo -ne "Detect partitions...\t\t"
+echo -ne "Detect EFI partition...\t\t"
 detect_partition
 
 echo -ne "Detect init...\t\t\t"
@@ -175,9 +194,4 @@ else
   chmod 644 $ROOT_CONF
 fi
 
-# TODO: test this
-#if [ -z $BOOT_DISK_UUID ] ; then
-#  blkid | grep -i partlabel="efi | grep -o  UUID=[A-Za-z0-9-]* | tr -d " "
-#  # return UUID="xxxx-xxxx"
-#fi
 exit 0
