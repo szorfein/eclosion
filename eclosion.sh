@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
+set -ue
 
 ########################################################
 # Program Vars
@@ -8,6 +10,7 @@ if [ -d /lib/eclosion ] ; then
 else
   ECLODIR=$(pwd)
 fi
+
 ECLODIR_STATIC=$ECLODIR/static
 WORKDIR=/tmp/eclosion
 ROOT=/mnt/root
@@ -25,7 +28,7 @@ usage() {
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
-  echo "-c, --custom    Copy the custom script to the image (/lib/eclosion/hooks/custom)"
+  echo "-c, --custom    Copy the custom script to the image located at /etc/eclosion/custom"
   exit 0
 }
 
@@ -62,6 +65,10 @@ while [ "$#" -gt 0 ] ; do
       ;;
     -c | --custom)
       CUSTOM=true
+      [ ! -f /etc/eclosion/custom ] && {
+          echo "custom script no found at /etc/eclosion/custom"
+          exit 1
+      }
       shift
       ;;
     -h | --help)
@@ -231,9 +238,12 @@ for s in $ECLODIR/scripts/init-bottom/* ; do
 done
 
 if [ $CUSTOM == true ] ; then
-  cp $ECLODIR/hooks/custom lib/eclosion/
+  cp /etc/eclosion/custom lib/eclosion/
   chmod +x lib/eclosion/custom
 fi
+
+mkdir -p etc/eclosion
+cp /etc/eclosion/eclosion.conf etc/eclosion/
 
 ########################################################
 # Build the init

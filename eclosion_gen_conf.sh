@@ -60,6 +60,10 @@ detect_kernel() {
   echo $KERNEL_LIST
 }
 
+detect_boot_partition() {
+    :
+}
+
 # used by efibootmgr
 # find uuid: ls -l /dev/disk/by-uuid/ | grep sdc1 | awk '{print $9}'
 # lsblk -f | grep sdc1 | awk '{print $3}'
@@ -98,7 +102,7 @@ detect_cmdline() {
     add_conf CUSTOM_CMDLINE="$CUSTOM_CMDLINE"
   fi
   add_conf "# do not change this line, post an issue if incorrect please"
-  CMDLINE="init=$INIT root=ZFS=$ZPOOL $(echo $CUSTOM_CMDLINE | tr -d "'\"")"
+  CMDLINE="init=$INIT root=ZFS=$ZPOOL \${CUSTOM_CMDLINE}"
   echo "$CMDLINE"
   add_conf CMDLINE=\""$CMDLINE"\"
   unset CMDLINE INIT ZPOOL
@@ -113,7 +117,7 @@ eclosion_args() {
     CUSTOM_ECLOSION_ARGS="${OLD_CUSTOM_ECLOSION_ARGS#*=}"
     add_conf CUSTOM_ECLOSION_ARGS="$CUSTOM_ECLOSION_ARGS"
   fi
-  ECLOSION_ARGS="--kernel $KERNEL_LIST $(echo $CUSTOM_ECLOSION_ARGS | tr -d "'\"")"
+  ECLOSION_ARGS="--kernel $KERNEL_LIST \${CUSTOM_ECLOSION_ARGS}"
   echo "$ECLOSION_ARGS"
   add_conf "# do not change this line, post an issue if incorrect please"
   add_conf ECLOSION_ARGS=\""$ECLOSION_ARGS\""
@@ -171,4 +175,9 @@ else
   chmod 644 $ROOT_CONF
 fi
 
+# TODO: test this
+#if [ -z $BOOT_DISK_UUID ] ; then
+#  blkid | grep -i partlabel="efi | grep -o  UUID=[A-Za-z0-9-]* | tr -d " "
+#  # return UUID="xxxx-xxxx"
+#fi
 exit 0

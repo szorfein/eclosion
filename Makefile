@@ -22,7 +22,7 @@ install:
 	install -Dm744 scripts/init-top/* $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-top/
 	install -Dm744 scripts/init-bottom/* $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-bottom/
 	mkdir -p $(CONF_DIR)/$(PROGRAM_NAME)
-	install -Dm755 eclosion_gen_conf.sh $(BIN_DIR)/$(PROGRAM_NAME)_gen_conf.sh
+	install -Dm755 eclosion_gen_conf.sh $(BIN_DIR)/$(PROGRAM_NAME)_gen_conf
 
 uninstall:
 	rm -f $(BIN_DIR)/$(PROGRAM_NAME)
