@@ -10,14 +10,14 @@ OLD_CUSTOM_ECLOSION_ARGS=""
 
 # retrieve old content
 if [ -f $ROOT_CONF ] ; then
-  if grep ZPOOL $ROOT_CONF >/dev/null ; then
-    OLD_ZPOOL="$(grep ZPOOL $ROOT_CONF)"
+  if grep ^ZPOOL $ROOT_CONF >/dev/null ; then
+    OLD_ZPOOL="$(grep ^ZPOOL $ROOT_CONF)"
   fi
-  if grep CUSTOM_CMDLINE $ROOT_CONF >/dev/null ; then
-    OLD_CUSTOM_CMDLINE="$(grep CUSTOM_CMDLINE $ROOT_CONF)"
+  if grep ^CUSTOM_CMDLINE $ROOT_CONF >/dev/null ; then
+    OLD_CUSTOM_CMDLINE="$(grep ^CUSTOM_CMDLINE $ROOT_CONF)"
   fi
-  if grep CUSTOM_ECLOSION_ARGS $ROOT_CONF >/dev/null ; then
-    OLD_CUSTOM_ECLOSION_ARGS="$(grep CUSTOM_ECLOSION_ARGS $ROOT_CONF)"
+  if grep ^CUSTOM_ECLOSION_ARGS $ROOT_CONF >/dev/null ; then
+    OLD_CUSTOM_ECLOSION_ARGS="$(grep ^CUSTOM_ECLOSION_ARGS $ROOT_CONF)"
   fi
 fi
 

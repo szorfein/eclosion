@@ -14,6 +14,7 @@ CONF_DIR=$(DESTDIR)etc
 _all:
 
 install:
+	install -Dm644 README.md $(DOC_DIR)/$(PROGRAM_NAME)/README.md
 	install -Dm644 docs/* $(DOC_DIR)/$(PROGRAM_NAME)/
 	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/{hooks,scripts,static}

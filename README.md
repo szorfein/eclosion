@@ -29,13 +29,13 @@ And a kernel version `4.14.80-gentoo`:
     $ ls /lib/modules
       4.14.80-gentoo
 
-### 1. Normal root ZFS
+### Normal root ZFS
 
 + Kernel cmdline : ` root=ZFS=zfsforninja/ROOT/gentoo init=/lib/systemd/systemd `
 + Build cmd : ` eclosion.sh --kernel 4.14.80-gentoo `
 
-### 2. Full disk encryption with custom hook, external header/gpg key.
-Look the [doc](https://github.com/szorfein/eclosion/tree/master/docs/custom-hook).
+### Other examples
+Full disk encryption with custom hook, external header and gpg key: [doc](https://github.com/szorfein/eclosion/blob/master/docs/custom-hook.md).
 
 ## Thanks
 + Gentoo docs: [gentoo-custom-initramfs](https://wiki.gentoo.org/wiki/Custom_Initramfs), [gentoo-custom-initramfs-examples](https://wiki.gentoo.org/wiki/Custom_Initramfs/Examples)
