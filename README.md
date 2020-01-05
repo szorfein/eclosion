@@ -48,4 +48,4 @@ Full disk encryption with custom hook, external header and gpg key: [doc](https:
 
 ### Support
 Any support will be greatly appreciated, star the repo, coffee, donation... thanks you !   
-<a href="https://www.patreon.com/szorfein"><img src="https://img.shields.io/badge/don-patreon-ab69f4"></a>  
+[![Donate](https://img.shields.io/badge/don-librapay-1ba9a4)](https://liberapay.com/szorfein) [![Donate](https://img.shields.io/badge/don-patreon-ab69f4)](https://www.patreon.com/szorfein)

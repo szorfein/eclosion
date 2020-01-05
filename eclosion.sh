@@ -18,6 +18,8 @@ LOG=$ECLODIR/build-img.log
 QUIET=true
 CUSTOM=false
 
+die() { echo "[-] $1"; exit 1; }
+
 ########################################################
 # Cmdline options
 
@@ -29,6 +31,7 @@ usage() {
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
   echo "-c, --custom    Copy the custom script to the image located at /etc/eclosion/custom"
+  echo "-b, --banner-ascii    Full path of a ascii banner, a simple .txt file"
   exit 0
 }
 
@@ -71,6 +74,11 @@ while [ "$#" -gt 0 ] ; do
       }
       shift
       ;;
+    -b | --banner-ascii)
+      BANNER=$2
+      shift
+      shift
+      ;;
     -h | --help)
       usage
       shift
@@ -83,26 +91,22 @@ while [ "$#" -gt 0 ] ; do
   esac
 done
 
-if [ ! -d /lib/modules/$KERNEL ] ; then
-  echo "Kernel version $KERNEL no found"
-  exit 1
-fi
+[ ! -d /lib/modules/$KERNEL ] &&
+  die echo "Kernel version $KERNEL no found"
 
 ########################################################
 # Check root
 
-if [ $(id -u) -ne 0 ] ; then
-  echo "[-] Run this program as a root pls" 
-  exit 1
-fi
+[ $(id -u) -ne 0 ] &&
+  die echo "Run this program as a root pls"
 
 ########################################################
 # Install $WORKDIR
 
-[[ -d $WORKDIR ]] && rm -rf $WORKDIR/*
+[ -d $WORKDIR ] && rm -rf $WORKDIR/*
 
-[[ ! -d $WORKDIR ]] && mkdir $WORKDIR
-[[ ! -d $ECLODIR_STATIC ]] && mkdir -p $ECLODIR_STATIC
+[ ! -d $WORKDIR ] && mkdir $WORKDIR
+[ ! -d $ECLODIR_STATIC ] && mkdir -p $ECLODIR_STATIC
 echo >$LOG && echo "[+] Build saved to $LOG"
 
 cd $WORKDIR
@@ -149,8 +153,7 @@ doBin() {
       fi
     done
   else
-    echo "no $1 found on the system, please install"
-    exit 1
+    die "no $1 found on the system, please install"
   fi
 }
 
@@ -188,10 +191,10 @@ else
   . $ECLODIR/hooks/udev
 fi
 
-[ ! -z $GPG ] && . $ECLODIR/hooks/gpg
-[ ! -z $LUKS ] && . $ECLODIR/hooks/luks
+[ ! -z ${GPG:-} ] && . $ECLODIR/hooks/gpg
+[ ! -z ${LUKS:-} ] && . $ECLODIR/hooks/luks
 [ ! -z $KEYMAP ] && . $ECLODIR/hooks/keymap
-[ ! -z $EXT_KEY ] && . $ECLODIR/hooks/external-key
+[ ! -z ${EXT_KEY:-} ] && . $ECLODIR/hooks/external-key
 
 ########################################################
 # libgcc_s.so.1 required by zfs
@@ -237,13 +240,21 @@ for s in $ECLODIR/scripts/init-bottom/* ; do
   chmod +x lib/eclosion/init-bottom/${s##*/}
 done
 
-if [ $CUSTOM == true ] ; then
+if [ $CUSTOM ] ; then
   cp /etc/eclosion/custom lib/eclosion/
   chmod +x lib/eclosion/custom
 fi
 
+########################################################
+# Simple files
+
 mkdir -p etc/eclosion
 cp /etc/eclosion/eclosion.conf etc/eclosion/
+
+if [ ! -z ${BANNER:-} ] ; then
+  [ ! -f $BANNER ] && die "file $BANNER no found"
+  cp $BANNER etc/eclosion/banner.logo
+fi
 
 ########################################################
 # Build the init
@@ -330,6 +341,11 @@ else
   BOOTFS=\${BOOT##*=}
   RPOOL=\${BOOTFS%%/*}
 fi
+
+#######################################################
+# Banner
+
+[ -f /etc/eclosion/banner.logo ] && cat /etc/eclosion/banner.logo
 
 #######################################################
 # If custom hook is enable
