@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -ue
+set -o errexit -o nounset -o pipefail
 
 ########################################################
 # Program Vars
@@ -17,6 +17,7 @@ ROOT=/mnt/root
 LOG=$ECLODIR/build-img.log
 QUIET=true
 CUSTOM=false
+BANNER=""
 
 die() { echo "[-] $1"; exit 1; }
 
@@ -26,7 +27,8 @@ die() { echo "[-] $1"; exit 1; }
 usage() {
   echo "-k, --kernel    Kernel version to use [Required]"
   echo "-l, --luks    Add cryptsetup to the image"
-  echo "-g, --gpg    Add gpg-1 to the image"
+  echo "-g, --gpg    Add gpg-2 to the image with gpg-agent"
+  echo "-u, --usb    Add support to load usb key"
   echo "-h, --help    Print this fabulous help"
   echo "-K, --keymap    Add other keymap than en to the initram"
   echo "-e, --external-key    Full path of the key file to add directly to the initram"
@@ -56,6 +58,10 @@ while [ "$#" -gt 0 ] ; do
       GPG=true
       shift
       ;;
+    -u | --usb)
+      USB=true
+      shift
+      ;;
     -K | --keymap)
       KEYMAP=$2
       shift
@@ -68,10 +74,8 @@ while [ "$#" -gt 0 ] ; do
       ;;
     -c | --custom)
       CUSTOM=true
-      [ ! -f /etc/eclosion/custom ] && {
-          echo "custom script no found at /etc/eclosion/custom"
-          exit 1
-      }
+      [ -f /etc/eclosion/custom ] ||
+          die "custom script no found at /etc/eclosion/custom"
       shift
       ;;
     -b | --banner-ascii)
@@ -91,22 +95,20 @@ while [ "$#" -gt 0 ] ; do
   esac
 done
 
-[ ! -d /lib/modules/$KERNEL ] &&
-  die echo "Kernel version $KERNEL no found"
+[ -d /lib/modules/$KERNEL ] || die "Kernel version $KERNEL no found"
 
 ########################################################
 # Check root
 
-[ $(id -u) -ne 0 ] &&
-  die echo "Run this program as a root pls"
+[ $(id -u) -ne 0 ] && die "Run this program as a root pls"
 
 ########################################################
 # Install $WORKDIR
 
 [ -d $WORKDIR ] && rm -rf $WORKDIR/*
 
-[ ! -d $WORKDIR ] && mkdir $WORKDIR
-[ ! -d $ECLODIR_STATIC ] && mkdir -p $ECLODIR_STATIC
+[ -d $WORKDIR ] || mkdir $WORKDIR
+[ -d $ECLODIR_STATIC ] || mkdir -p $ECLODIR_STATIC
 echo >$LOG && echo "[+] Build saved to $LOG"
 
 cd $WORKDIR
@@ -125,8 +127,21 @@ else
   mkdir usr/lib
 fi
 
+donod() {
+  pushd dev || die "donod, pushd dev"
+  [ -c console ] || mknod -m 600 console c 5 1 || die "donod, console"
+  [ -c null    ] || mknod -m 666 null    c 1 3 || die "donod, null"
+  [ -c tty     ] || mknod -m 666 tty     c 5 0 || die "donod, tty"
+  [ -c zero    ] || mknod -m 666 zero    c 1 5 || die "donod, zero"
+
+  for i in 0 1 2; do
+    [ -c tty${i} ] || mknod -m 600 tty${i} c 4 ${i} || die "donod, tty[$i]..."
+  done
+  popd || die "donod, popd..."
+}
+
 # Device nodes
-cp -a /dev/{null,console,tty,tty0,tty1,zero} dev/
+cp -a /dev/{console,null,tty,tty[0-2],zero} dev/ || donod
 
 ########################################################
 # ZFS
@@ -153,7 +168,8 @@ doBin() {
       fi
     done
   else
-    die "no $1 found on the system, please install"
+    echo "no $1 found on the system, please install"
+    exit 1
   fi
 }
 
@@ -166,7 +182,16 @@ doMod() {
       for m in ${modules}; do
         m="${m%:}"
         echo "[+] Copying module $m ..." >>$LOG
-        mkdir -p .${lib_dir}/${m%/*} && cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
+        mkdir -p .${lib_dir}/${m%/*}
+        if [ -f ${lib_dir}/${m}.xz ] ; then
+          cp -ar ${lib_dir}/${m}.xz .${lib_dir}/${m}.xz
+        elif [ -f ${lib_dir}/${m}.gz ] ; then
+          cp -ar ${lib_dir}/${m}.gz .${lib_dir}/${m}.gz
+        elif [ -f ${lib_dir}/${m} ] ; then
+          cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
+        else
+          echo "[-] ${mod} kernel module not found" >>$LOG
+        fi
       done
     else
       echo "[-] ${mod} kernel module not found" >>$LOG
@@ -193,8 +218,9 @@ fi
 
 [ ! -z ${GPG:-} ] && . $ECLODIR/hooks/gpg
 [ ! -z ${LUKS:-} ] && . $ECLODIR/hooks/luks
-[ ! -z $KEYMAP ] && . $ECLODIR/hooks/keymap
+[ ! -z ${KEYMAP:-en} ] && . $ECLODIR/hooks/keymap
 [ ! -z ${EXT_KEY:-} ] && . $ECLODIR/hooks/external-key
+[ ! -z ${USB:-} ] && . $ECLODIR/hooks/usb
 
 ########################################################
 # libgcc_s.so.1 required by zfs
@@ -240,7 +266,7 @@ for s in $ECLODIR/scripts/init-bottom/* ; do
   chmod +x lib/eclosion/init-bottom/${s##*/}
 done
 
-if [ $CUSTOM ] ; then
+if [ $CUSTOM == true ] ; then
   cp /etc/eclosion/custom lib/eclosion/
   chmod +x lib/eclosion/custom
 fi
@@ -251,8 +277,8 @@ fi
 mkdir -p etc/eclosion
 cp /etc/eclosion/eclosion.conf etc/eclosion/
 
-if [ ! -z ${BANNER:-} ] ; then
-  [ ! -f $BANNER ] && die "file $BANNER no found"
+if [ ! -z $BANNER ] ; then
+  [ -f $BANNER ] || die "file $BANNER no found"
   cp $BANNER etc/eclosion/banner.logo
 fi
 
@@ -395,5 +421,4 @@ fi
 
 cd ..
 echo "[+] initramfs created at $(pwd)/$INITRAMFS_NAME.img"
-
 exit 0

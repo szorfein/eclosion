@@ -1,0 +1,5 @@
+#!/bin/sh
+
+modules+=" ehci-pci xhci-pci uas usb-storage"
+
+mkdir -p lib/modules/${KERNEL}/kernel/drivers/usb/{host,storage}

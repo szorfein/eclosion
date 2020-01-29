@@ -36,8 +36,15 @@
 ###########################################################
 # 
 
+mknod() {
+  pushd dev || die "luks, pushd dev"
+  [ -c urandom ] || mknod -m 666 urandom c 1 9 || die "luks, urandom"
+  [ -c random  ] || mknod -m 666 random  c 1 8 || die "luks, random"
+  popd || die "luks, popd"
+}
+
 # Add devices
-cp -a /dev/{urandom,random} dev/
+cp -a /dev/{urandom,random} dev/ || mknod
 
 # Udev rules
 for rules in 10-dm.rules 13-dm-disk.rules \

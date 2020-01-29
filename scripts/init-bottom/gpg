@@ -1,7 +1,10 @@
 #!/bin/sh
 
-# Restore the bad tty (necessary ?)
-rm /dev/tty && mv -f /dev/tty-bak /dev/tty
-
 # kill the agent
-gpgconf --kill gpg-agent
+#gpgconf --kill gpg-agent
+GNUPGHOME="$gpghome" gpg-connect-agent 1>/dev/null killagent /bye
+
+# Restore tty
+[ -e /dev/tty-bak ] && mv /dev/tty-bak /dev/tty
+
+unset gpghome GPG_TTY
