@@ -3,7 +3,7 @@
 set -o errexit -o nounset -o pipefail
 
 ROOT_CONF=/etc/eclosion/eclosion.conf
-TMP_CONF=~/eclosion.conf
+TMP_CONF=/tmp/eclosion.conf
 
 # user variables
 OLD_ZPOOL=
@@ -51,6 +51,11 @@ rem_old_entry() {
   echo $?
 }
 
+need_root() {
+  [ $(id -u) -ne 0 ] &&
+    die "I need root privilege to $1"
+}
+
 write_fstab() {
   _DEV=$1
   _PATH=$2
@@ -59,6 +64,7 @@ write_fstab() {
   _DUMP=0
   _FSCK=2
 
+  need_root "change the fstab"
   echo "$_DEV $_PATH $_FS $_ARGS $_DUMP $_FSCK" >> /etc/fstab
 }
 
@@ -67,15 +73,8 @@ write_cryptboot() {
   _PASS=none
   _OPTS=luks
 
+  need_root "change the crypttab"
   echo "$_NAME $CRYPTBOOT $_PASS $_OPTS" >> /etc/crypttab
-}
-
-need_root() {
-  [ $(id -u) -ne 0 ] && {
-    echo "Run $0 as a root plz"
-    exit 1
-  }
-  return 0
 }
 
 detect_new_efi_part() {
@@ -98,6 +97,14 @@ detect_new_cryptboot_part() {
   write_fstab /dev/mapper/cryptboot /boot ext4 "noauto,rw,relatime,nojournal_checksum,barrier,user_xattr"
 }
 
+search_root_fs() {
+  echo "Exec zfs list..."
+  zfs list -H -o name -d 2 | head -n 7
+  echo "No old zpool found, which dataset is your ROOT fs? (e.g: poolname/ROOT/gentoo)"
+  read -p "> "
+  OLD_ZPOOL=$REPLY
+}
+
 get_user_vars() {
   OLD_ZPOOL=$(grep ^ZPOOL $ROOT_CONF) || echo "No old zpool found"
   OLD_CUSTOM_CMDLINE="$(grep ^CUSTOM_CMDLINE $ROOT_CONF)" || echo "No old cmdline found"
@@ -106,12 +113,13 @@ get_user_vars() {
 }
 
 search_zpool() {
-  [ -f $ROOT_CONF ] || return 0
+  [ -f $ROOT_CONF ] || search_root_fs
   echo -n "check pool... $OLD_ZPOOL "
   if zfs get exec ${OLD_ZPOOL#*=} >/dev/null ; then
     echo " ...[Ok]"
   else
-    OLD_ZPOOL=
+    echo "Fail to found ${OLD_ZPOOL#*=}"
+    search_root_fs
   fi
 }
 
@@ -150,6 +158,7 @@ detect_kernel() {
 }
 
 detect_efi_partition() {
+  [ -f /etc/fstab ] || detect_new_efi_part
   if FSTAB=$(grep -i efi /etc/fstab | awk '{print $1}') ; then
     echo "Found your EFI partition $FSTAB in the fstab"
     EFI_PARTITION="$FSTAB"
@@ -168,6 +177,7 @@ detect_efi_partition() {
 
 # From the crypttab, TODO check if you use a cryptboot first !
 detect_cryptboot_partition() {
+  [ -f /etc/crypttab ] || detect_new_cryptboot_part
   if CRYPTTAB=$(grep cryptboot /etc/crypttab | awk '{print $2}') ; then
     echo "Found cryptboot $CRYPTTAB in the crypttab"
     CRYPTBOOT=$CRYPTTAB
@@ -225,7 +235,7 @@ write_others_vars() {
 show_diff() {
   [ -f $ROOT_CONF ] || return 0
   if diff $ROOT_CONF $TMP_CONF >/dev/null ; then
-    echo "No change, close $0"
+    echo "No change, bye"
     exit 0
   else
     echo "Differences between config files..."
@@ -244,12 +254,9 @@ show_diff() {
 }
 
 copy_config_file() {
-  if [ $(id -u) -ne 0 ] ; then
-    die "I need root privilege to copy the new file at $ROOT_CONF, use sudo next time"
-  else
-    cp $TMP_CONF $ROOT_CONF
-    chmod 644 $ROOT_CONF
-  fi
+  need_root "copy the config $ROOT_CONF"
+  cp $TMP_CONF $ROOT_CONF
+  chmod 644 $ROOT_CONF
 }
 
 main() {
@@ -266,8 +273,8 @@ main() {
   write_user_vars
   write_others_vars
   show_diff
-  #need_root
   copy_config_file
+  exit 0
 }
 
 main $@
