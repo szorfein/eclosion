@@ -369,6 +369,11 @@ else
 fi
 
 #######################################################
+# source conf
+
+[ -f /etc/eclosion/eclosion.conf ] && . /etc/eclosion/eclosion.conf
+
+#######################################################
 # Banner
 
 [ -f /etc/eclosion/banner.logo ] && cat /etc/eclosion/banner.logo

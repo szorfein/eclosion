@@ -38,12 +38,11 @@ waiting_disk() {
 gpg_with_luks() {
   GPG_OPTS="--homedir $gpghome --no-mdc-warning --skip-verify --quiet --logger-file /dev/null --pinentry-mode loopback"
 
-  ! [ -f $1 ] && die "key $1 no found"
+  [ -f $1 ] || echo "gpg key $1 no found..."
   waiting_disk $2
   #if ! findfs $2 >/dev/null ; then die "device $2 no found" ; fi
 
   { flock -s 9;
-
     i=1
     while [ $i -le 3 ] ; do
       gpg $GPG_OPTS -d $1 | cryptsetup --key-file=- open --type luks $2 $3

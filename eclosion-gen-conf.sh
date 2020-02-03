@@ -52,8 +52,8 @@ rem_old_entry() {
 }
 
 need_root() {
-  [ $(id -u) -ne 0 ] &&
-    die "I need root privilege to $1"
+  [ $(id -u) -ne 0 ] && die "I need root privilege to $1"
+  return 0
 }
 
 write_fstab() {
@@ -246,6 +246,7 @@ show_diff() {
     read -p "Apply change ? "
     if [[ $REPLY =~ ^y|^Y ]] ; then
       echo "Copying the new file..."
+      return 0
     else
       echo "Ok, i (lol) do nothing..."
       exit 0
