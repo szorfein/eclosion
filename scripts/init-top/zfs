@@ -15,4 +15,5 @@ zpoolMount() {
   rescueShell "Fail to import $RPOOL at $ROOT"
 }
 
+echo "Importing zfs dataset.."
 zpoolMount
