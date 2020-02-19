@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# An example of custom hook to open a system from:
+# https://github.com/szorfein/Gentoo-ZFS/wiki
+
+USB_MOUNTPOINT=/mnt/usb
+PATH_KEY=/root/key.gpg
+ZPOOL_DEV=/dev/disk/by-id/ata-STXXXXXXXXX-XXXXXX_WGSXXXXX
+KEY_OFFSET=666
+KEY_SIZE=8192
+
+mkdir -p $USB_MOUNTPOINT
+
+gpg_with_luks $PATH_KEY $CRYPTBOOT cryptboot
+
+[ -b /dev/mapper/cryptboot ] || rescueShell "Fail to open cryptboot"
+
+mount -t ext4 /dev/mapper/cryptboot $USB_MOUNTPOINT
+
+gpg_with_luks $PATH_KEY $USB_MOUNTPOINT/key.img lukskey
+# gpg_with_luks is the same than:
+# gpg -qd $PATH_KEY | cryptsetup -v --key-file=- open --type luks $USB_MOUNTPOINT/key.img lukskey
+
+[ -b /dev/mapper/lukskey ] || rescueShell "Fail to open lukskey"
+
+cryptsetup -v --header $USB_MOUNTPOINT/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=$KEY_OFFSET --keyfile-size=$KEY_SIZE open --type luks $ZPOOL_DEV zfs-enc
+
+[ -b /dev/mapper/zfs-enc ] || rescueShell "Fail to open zfs-enc"
+
+cryptsetup close lukskey
