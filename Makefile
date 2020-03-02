@@ -16,6 +16,8 @@ _all:
 install:
 	install -Dm644 README.md $(DOC_DIR)/$(PROGRAM_NAME)/README.md
 	install -Dm644 docs/* $(DOC_DIR)/$(PROGRAM_NAME)/
+	mkdir -p $(DOC_DIR)/$(PROGRAM_NAME)/examples
+	install -Dm644 docs/examples/* $(DOC_DIR)/$(PROGRAM_NAME)/examples/
 	install -Dm755 eclosion.sh $(BIN_DIR)/$(PROGRAM_NAME)
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/{hooks,scripts,static}
 	mkdir -p $(LIB_DIR)/$(PROGRAM_NAME)/scripts/init-{top,bottom}/
