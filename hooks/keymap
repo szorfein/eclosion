@@ -1,11 +1,14 @@
-#!/bin/sh
+#!/usr/bin/env sh
+
+# No reason to change keymap all times if work
+[ -f /etc/eclosion/keymaps ] || {
+  loadkeys -b -u $KEYMAP > /etc/eclosion/keymaps
+  if [ $? -eq 0 ] ; then
+    echo "[+] Add $KEYMAP to the initramfs"
+  else
+    die "Fail to add $KEYMAP"
+  fi
+}
 
 mkdir -p usr/share/keymaps
-
-loadkeys -b -u $KEYMAP > usr/share/keymaps/keyboard.bin
-if [ $? -eq 0 ] ; then
-  echo "[+] Add $KEYMAP to the initramfs"
-else
-  echo "Fail to add $KEYMAP"
-  exit 1
-fi
+cp /etc/eclosion/keymaps usr/share/keymaps/keyboard.bin
