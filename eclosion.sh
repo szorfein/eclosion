@@ -252,6 +252,9 @@ done
 mkdir -p lib/modules/$KERNEL
 cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/modules.dep
 
+# Add module options on the initramfs too
+[ -d /etc/modprobe.d ] && cp -a /etc/modprobe.d etc/modprobe.d
+
 ########################################################
 # Copy scripts
 

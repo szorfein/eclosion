@@ -3,26 +3,41 @@
 ###############################################################
 # Build Static Busybox
 
+REBUILD=false
+[ -x $ECLODIR_STATIC/busybox ] && {
+  read -p "Do you want to rebuild busybox? [N/y] "
+  if [[ $REPLY =~ ^y|^Y ]] ; then
+    REBUILD=true
+  else
+    echo "echo ok"
+  fi
+}
+
 source /etc/portage/make.conf
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
-if [ ! -x $ECLODIR_STATIC/busybox ] ; then
+if [ ! -x $ECLODIR_STATIC/busybox ] || $REBUILD ; then
+  REPO=/var/db/repos/gentoo
   PKG=sys-apps/busybox
-  BUSYBOX_EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
+  #BUSYBOX_EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
+  #BUSYBOX_EBUILD=$(ls $REPO/$PKG/*.ebuild | head -n 1)
+  BUSYBOX_EBUILD=$(equery s busybox | grep -o "sys-apps/[a-z]*-[0-9.]*[-r]*[0-9]*") # sys-apps/busybox-1.30.0-r2
   BUSYBOX_EBUILD=${BUSYBOX_EBUILD##*/}
   echo "[+] Building $BUSYBOX_EBUILD, plz wait ..."
-  USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
+  #USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
+  #USE="-pam static" ebuild $REPO/$PKG/$BUSYBOX_EBUILD clean unpack compile
+  USE="-pam static" ebuild $REPO/$PKG/$BUSYBOX_EBUILD.ebuild clean unpack compile
   if [ $? -ne 0 ] ; then
     echo "[-] Failed to build $BUSYBOX_EBUILD"
     exit 1
   fi
-  (cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
-  ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
+  #(cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
+  (cp /var/tmp/portage/${PKG}/${BUSYBOX_EBUILD}/work/${BUSYBOX_EBUILD}/busybox $ECLODIR_STATIC/busybox)
+  #ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean
+  ebuild $REPO/$PKG/$BUSYBOX_EBUILD clean
 elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then
   echo "[-] Busybox is not static"
   exit 1
-else
-  echo "[+] Busybox found" >>$LOG
 fi
 
 cp -a $ECLODIR_STATIC/busybox $BUSYBOX_BIN
