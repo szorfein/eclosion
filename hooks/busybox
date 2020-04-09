@@ -34,7 +34,7 @@ if [ ! -x $ECLODIR_STATIC/busybox ] || $REBUILD ; then
   #(cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
   cp /var/tmp/portage/sys-apps/busybox-*/work/busybox-*/busybox $ECLODIR_STATIC/busybox
   ebuild $REPO/$PKG/$BUSYBOX_EBUILD.ebuild clean
-elif ldd $ECLODIR_STATIC/busybox >/dev/null ; then
+elif ldd $ECLODIR_STATIC/busybox &>2 >/dev/null ; then
   echo "[-] Busybox is not static"
   exit 1
 fi
