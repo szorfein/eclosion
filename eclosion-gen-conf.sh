@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-set -o errexit -o nounset -o pipefail
+set -o errexit -o nounset
 
 ROOT_CONF=/etc/eclosion/eclosion.conf
 TMP_CONF=/tmp/eclosion.conf
@@ -19,40 +19,41 @@ display_disk() {
 }
 
 search_uuid() {
-  BY_UUID=$(find -L /dev/disk/by-uuid -samefile $1)
-  [ -z $BY_UUID ] && { 
+  BY_UUID=$(find -L /dev/disk/by-uuid -samefile "$1")
+  [ -z "$BY_UUID" ] && {
     echo "No UUID found for $1" 
     return 1
   }
-  [ -n $BY_UUID ] && return 0
+  [ -n "$BY_UUID" ] && return 0
 }
 
 search_disk() {
   while :; do
     echo
     echo "Which disk is your $1 ? (Full path, e.g: /dev/sda1)"
-    read -p "> "
-    [ -b $REPLY ] && {
-      search_uuid $REPLY
-      [ $? -eq 0 ] && break
+    printf "> "; read -r
+    [ -b "$REPLY" ] && {
+      search_uuid "$REPLY"
+      res=$?
+      [ $res -eq 0 ] && break
     }
   done
 }
 
 rem_old_entry() {
-  [ -f $2 ] || {
+  [ -f "$2" ] || {
     echo "File $2 no found"
     return
   }
-  old="$(grep $1 $2)"
+  old="$(grep "$1" "$2")"
   [ -z "$old" ] && return
   echo "clean $2 with $1"
-  sed -i "/$1 / d" $2 1>/dev/null # Add a space to remove multiple occurence of boot
+  sed -i "/$1 / d" "$2" 1>/dev/null # Add a space to remove multiple occurence of boot
   echo $?
 }
 
 need_root() {
-  [ $(id -u) -ne 0 ] && die "I need root privilege to $1"
+  [ "$(id -u)" -ne 0 ] && die "I need root privilege to $1"
   return 0
 }
 
@@ -81,16 +82,16 @@ detect_new_efi_part() {
   display_disk
   search_disk ESP
   EFI=UUID=${BY_UUID##*/}
-  echo $EFI
+  echo "$EFI"
   rem_old_entry "\/boot\/efi" /etc/fstab
-  write_fstab $EFI /boot/efi vfat "noauto,rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro"
+  write_fstab "$EFI" /boot/efi vfat "noauto,rw,relatime,fmask=0022,dmask=0022,codepage=437,iocharset=iso8859-1,shortname=mixed,utf8,errors=remount-ro"
 }
 
 detect_new_cryptboot_part() {
   display_disk
   search_disk CRYPTBOOT
   CRYPTBOOT=UUID=${BY_UUID##*/}
-  echo $CRYPTBOOT
+  echo "$CRYPTBOOT"
   rem_old_entry cryptboot /etc/crypttab
   write_cryptboot
   rem_old_entry "\/boot" /etc/fstab
@@ -101,7 +102,7 @@ search_root_fs() {
   echo "Exec zfs list..."
   zfs list -H -o name -d 2 | head -n 7
   echo "No old zpool found, which dataset is your ROOT fs? (e.g: poolname/ROOT/gentoo)"
-  read -p "> "
+  printf "> "; read -r
   OLD_ZPOOL=$REPLY
 }
 
@@ -114,8 +115,8 @@ get_user_vars() {
 
 search_zpool() {
   [ -f $ROOT_CONF ] || search_root_fs
-  echo -n "check pool... $OLD_ZPOOL "
-  if zfs get exec ${OLD_ZPOOL#*=} >/dev/null ; then
+  printf "check pool... %s" "$OLD_ZPOOL"
+  if zfs get exec "${OLD_ZPOOL#*=}" >/dev/null ; then
     echo " ...[Ok]"
   else
     echo "Fail to found ${OLD_ZPOOL#*=}"
@@ -124,8 +125,8 @@ search_zpool() {
 }
 
 search_bydisk() {
-  echo -n "Check EFI $EFI_PARTITION "
-  if find -L /dev/disk -samefile $(findfs $EFI_PARTITION) >/dev/null ; then
+  printf "Check EFI %s" "$EFI_PARTITION"
+  if find -L /dev/disk -samefile "$(findfs "$EFI_PARTITION")" >/dev/null ; then
     echo " ...[Ok]"
   else
     EFI_PARTITION=
@@ -133,8 +134,8 @@ search_bydisk() {
 }
 
 control_values() {
-  [ -n $OLD_ZPOOL ] && search_zpool
-  [ -n $EFI_PARTITION ] && search_bydisk
+  [ -n "$OLD_ZPOOL" ] && search_zpool
+  [ -n "$EFI_PARTITION" ] && search_bydisk
 }
 
 detect_init() {
@@ -151,9 +152,9 @@ detect_init() {
 
 # use eselect kernel list to detect your kernel version
 detect_kernel() {
-  KERNEL_LIST=$(eselect kernel list | grep "*" | awk '{print $2}' | sed s/linux-//)
-  [ -z $KERNEL_LIST ] && die "eselect kernel list is void..."
-  [ ! -d /usr/src/linux-$KERNEL_LIST ] && die "path /usr/src/linux-$KERNEL_LIST no found"
+  KERNEL_LIST=$(eselect kernel list | grep "\*" | awk '{print $2}' | sed s/linux-//)
+  [ -z "$KERNEL_LIST" ] && die "eselect kernel list is void..."
+  [ ! -d /usr/src/linux-"$KERNEL_LIST" ] && die "path /usr/src/linux-$KERNEL_LIST no found"
   echo "kernel found: $KERNEL_LIST"
 }
 
@@ -172,7 +173,7 @@ detect_efi_partition() {
     detect_new_efi_part
     EFI_PARTITION=$(grep -i efi /etc/fstab | awk '{print $1}')
   fi
-  [ -z $EFI_PARTITION ] && die "Can't detect your EFI partition"
+  [ -z "$EFI_PARTITION" ] && die "Can't detect your EFI partition"
 }
 
 # From the crypttab, TODO check if you use a cryptboot first !
@@ -186,7 +187,7 @@ detect_cryptboot_partition() {
     detect_new_cryptboot_part
     CRYPTBOOT=$(grep cryptboot /etc/crypttab | awk '{print $2}')
   fi
-  [ -z $CRYPTBOOT ] && die "cryptboot partition is no found"
+  [ -z "$CRYPTBOOT" ] && die "cryptboot partition is no found"
 }
 
 detect_all_values() {
@@ -198,7 +199,7 @@ detect_all_values() {
 
 default_values() {
   ZPOOL="" CUSTOM_ECLOSION_ARGS=\"\" CUSTOM_CMDLINE=\"\"
-  [ -n $OLD_ZPOOL ] && ZPOOL=${OLD_ZPOOL#*=}
+  [ -n "$OLD_ZPOOL" ] && ZPOOL=${OLD_ZPOOL#*=}
   [ -n "$OLD_CUSTOM_ECLOSION_ARGS" ] && CUSTOM_ECLOSION_ARGS="${OLD_CUSTOM_ECLOSION_ARGS#*=}"
   [ -n "$OLD_CUSTOM_CMDLINE" ] && CUSTOM_CMDLINE="${OLD_CUSTOM_CMDLINE#*=}"
   return 0
@@ -207,7 +208,7 @@ default_values() {
 write_user_vars() {
   add_conf "### Users variables #############"
   add_conf "# Pool name"
-  add_conf ZPOOL=$ZPOOL
+  add_conf ZPOOL="$ZPOOL"
   add_conf "# Args to pass to eclosion, do not set the kernel"
   add_conf CUSTOM_ECLOSION_ARGS="$CUSTOM_ECLOSION_ARGS"
   add_conf "# Custom kernel arguments"
@@ -219,13 +220,13 @@ write_others_vars() {
   add_conf "### Automatically detected, don't edit them #############"
   add_conf "# Post an issue if something is incorrect at: https://github.com/szorfein/eclosion/issues"
   add_conf "# init detected"
-  add_conf INIT=$INIT
+  add_conf INIT="$INIT"
   add_conf "# last kernel found with eselect kernel list"
-  add_conf KERNEL=$KERNEL_LIST
+  add_conf KERNEL="$KERNEL_LIST"
   add_conf "# Your EFI partition here by LABEL, UUID, PARTUUID, etc..."
-  add_conf EFI_PARTITION=$EFI_PARTITION
+  add_conf EFI_PARTITION="$EFI_PARTITION"
   add_conf "# Your cryptboot partition here"
-  add_conf CRYPTBOOT=$CRYPTBOOT
+  add_conf CRYPTBOOT="$CRYPTBOOT"
   add_conf "# CMDLINE"
   add_conf CMDLINE=\""init=\${INIT} root=ZFS=\${ZPOOL} \${CUSTOM_CMDLINE}\""
   add_conf "# Eclosion args"
@@ -240,11 +241,11 @@ show_diff() {
   else
     echo "Differences between config files..."
     # hack to display diff without produce error
-    for i in "$(diff $ROOT_CONF $TMP_CONF)"; do
+    for i in $(diff $ROOT_CONF $TMP_CONF); do
       echo "$i"
     done
-    read -p "Apply change ? "
-    if [[ $REPLY =~ ^y|^Y ]] ; then
+    printf "Apply change? " ; read -r
+    if echo "$REPLY" | grep -qP "^y|^Y" ; then
       echo "Copying the new file..."
       return 0
     else
@@ -265,8 +266,6 @@ main() {
   :>$TMP_CONF
 
   [ -f $ROOT_CONF ] && get_user_vars
-  #OLD_ZPOOL=kheops
-  #EFI_PARTITION="/dev/disk/lol"
   detect_all_values
   control_values
   default_values
@@ -275,7 +274,6 @@ main() {
   write_others_vars
   show_diff
   copy_config_file
-  exit 0
 }
 
-main $@
+main $\@
