@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 ###############################################################
 # Build Static Busybox
@@ -39,7 +39,7 @@ elif ldd $ECLODIR_STATIC/busybox >/dev/null 2>&1 ; then
 fi
 
 cp -a "$ECLODIR_STATIC"/busybox "$BUSYBOX_BIN"
-BUSY_BIN=$(type $BUSYBOX_BIN)
+BUSY_BIN=$(type -p $BUSYBOX_BIN)
 BUSY_APPS=/tmp/busybox-apps
 $BUSY_BIN --list-full > $BUSY_APPS
 

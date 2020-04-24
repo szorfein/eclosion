@@ -7,7 +7,7 @@
 [ -x /lib/udev/udevd ] && UDEVD=/lib/udev/udevd
 [ -x /lib/systemd/systemd-udevd ] && UDEVD=/lib/systemd/systemd-udevd
 
-[ -z "$UDEVD" ] || die "Cannot find udevd nor systemd-udevd"
+[ -n "$UDEVD" ] || die "Cannot find udevd nor systemd-udevd"
 
 mkdir -p etc/udev lib/udev/rules.d lib/systemd
 
