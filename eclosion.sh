@@ -95,21 +95,21 @@ while [ "$#" -gt 0 ] ; do
   esac
 done
 
-[ -d /lib/modules/$KERNEL ] || die "Kernel version $KERNEL no found"
+[ -d /lib/modules/"$KERNEL" ] || die "Kernel version $KERNEL no found"
 
 ########################################################
 # Check root
 
-[ $(id -u) -ne 0 ] && die "Run this program as a root pls"
+[ "$(id -u)" -ne 0 ] && die "Run this program as a root pls"
 
 ########################################################
 # Install $WORKDIR
 
-[ -d $WORKDIR ] && rm -rf $WORKDIR/*
+[ -d $WORKDIR ] && rm -rf ${WORKDIR:?}/*
 
 [ -d $WORKDIR ] || mkdir $WORKDIR
-[ -d $ECLODIR_STATIC ] || mkdir -p $ECLODIR_STATIC
-echo >$LOG && echo "[+] Build saved to $LOG"
+[ -d "$ECLODIR_STATIC" ] || mkdir -p "$ECLODIR_STATIC"
+echo >"$LOG" && echo "[+] Build saved to $LOG"
 
 cd $WORKDIR
 
@@ -154,17 +154,17 @@ modules="zlib_deflate spl zavl znvpair zcommon zunicode icp zfs"
 
 doBin() {
   local lib bin link
-  if bin=$(which $1) ; then
-    for lib in $(lddtree -l $bin 2>/dev/null | sort -u) ; do
-      echo "[+] Copying lib $lib to .$lib ... " >>$LOG
-      if [ -h $lib ] ; then
-        link=$(readlink $lib)
-        echo "Found a link $lib == ${lib%/*}/$link" >>$LOG
-        cp -a $lib .$lib
-        cp -a ${lib%/*}/$link .${lib%/*}/$link
-      elif [ -x $lib ] ; then
-        echo "Found binary $lib" >>$LOG
-        cp -a $lib .$lib
+  if bin=$(which "$1") ; then
+    for lib in $(lddtree -l "$bin" 2>/dev/null | sort -u) ; do
+      echo "[+] Copying lib $lib to .$lib ... " >>"$LOG"
+      if [ -h "$lib" ] ; then
+        link=$(readlink "$lib")
+        echo "Found a link $lib == ${lib%/*}/$link" >>"$LOG"
+        cp -a "$lib" ."$lib"
+        cp -a "${lib%/*}/$link" ."${lib%/*}/$link"
+      elif [ -x "$lib" ] ; then
+        echo "Found binary $lib" >>"$LOG"
+        cp -a "$lib" ."$lib"
       fi
     done
   else
@@ -177,24 +177,24 @@ doMod() {
   local m mod=$1 modules lib_dir=/lib/modules/$KERNEL
 
   for mod; do
-    modules="$(sed -nre "s/(${mod}(|[_-]).*$)/\1/p" ${lib_dir}/modules.dep)"
+    modules="$(sed -nre "s/(${mod}(|[_-]).*$)/\1/p" "${lib_dir}"/modules.dep)"
     if [ -n "${modules}" ]; then
       for m in ${modules}; do
         m="${m%:}"
-        echo "[+] Copying module $m ..." >>$LOG
-        mkdir -p .${lib_dir}/${m%/*}
-        if [ -f ${lib_dir}/${m}.xz ] ; then
-          cp -ar ${lib_dir}/${m}.xz .${lib_dir}/${m}.xz
-        elif [ -f ${lib_dir}/${m}.gz ] ; then
-          cp -ar ${lib_dir}/${m}.gz .${lib_dir}/${m}.gz
-        elif [ -f ${lib_dir}/${m} ] ; then
-          cp -ar ${lib_dir}/${m} .${lib_dir}/${m}
+        echo "[+] Copying module $m ..." >>"$LOG"
+        mkdir -p ."${lib_dir}/${m%/*}"
+        if [ -f "${lib_dir}/${m}".xz ] ; then
+          cp -ar "${lib_dir}/${m}".xz ."${lib_dir}/${m}".xz
+        elif [ -f "${lib_dir}/${m}".gz ] ; then
+          cp -ar "${lib_dir}/${m}".gz ."${lib_dir}/${m}".gz
+        elif [ -f "${lib_dir}/${m}" ] ; then
+          cp -ar "${lib_dir}/${m}" ."${lib_dir}/${m}"
         else
-          echo "[-] ${mod} kernel module not found" >>$LOG
+          echo "[-] ${mod} kernel module not found" >>"$LOG"
         fi
       done
     else
-      echo "[-] ${mod} kernel module not found" >>$LOG
+      echo "[-] ${mod} kernel module not found" >>"$LOG"
     fi
   done
 }
@@ -202,7 +202,7 @@ doMod() {
 ########################################################
 # Install hooks
 
-. $ECLODIR/hooks/busybox
+. "$ECLODIR"/hooks/busybox
 
 # mdev or udev
 DEVTMPFS=$(grep devtmpfs /proc/filesystems)
@@ -211,16 +211,16 @@ DEVTMPFS=$(grep devtmpfs /proc/filesystems)
 cp -a /etc/group etc/group
 
 if [ -z "$DEVTMPFS" ] ; then
-  . $ECLODIR/hooks/mdev
+  . "$ECLODIR"/hooks/mdev
 else
-  . $ECLODIR/hooks/udev
+  . "$ECLODIR"/hooks/udev
 fi
 
-[ ! -z ${GPG:-} ] && . $ECLODIR/hooks/gpg
-[ ! -z ${LUKS:-} ] && . $ECLODIR/hooks/luks
-[ ! -z ${KEYMAP:-en} ] && . $ECLODIR/hooks/keymap
-[ ! -z ${EXT_KEY:-} ] && . $ECLODIR/hooks/external-key
-[ ! -z ${USB:-} ] && . $ECLODIR/hooks/usb
+[ -n "$GPG" ] && . "$ECLODIR"/hooks/gpg
+[ -n "$LUKS" ] && . "$ECLODIR"/hooks/luks
+[ -n "$KEYMAP" ] && . "$ECLODIR"/hooks/keymap
+[ -n "$EXT_KEY" ] && . "$ECLODIR"/hooks/external-key
+[ -n "$USB" ] && . "$ECLODIR"/hooks/usb
 
 ########################################################
 # libgcc_s.so.1 required by zfs
@@ -229,7 +229,7 @@ gcc_version=$(gcc --version | head -n 1 | awk '{print $6}')
 
 if search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1 | grep "$gcc_version/lib") ; then
   bin+=" $search_lib"
-  cp ${search_lib} usr/lib64/libgcc_s.so.1
+  cp "$search_lib" usr/lib64/libgcc_s.so.1
 else
   echo "[-] libgcc_s.so.1 no found on the system..."
   exit 1
@@ -239,18 +239,18 @@ fi
 # Install binary and modules
 
 for bin in $bins ; do
-  doBin $bin
+  doBin "$bin"
 done
 
 for mod in $modules ; do
-  doMod $mod
+  doMod "$mod"
 done
 
 ########################################################
 # Copy the modules.dep
 
-mkdir -p lib/modules/$KERNEL
-cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/modules.dep
+mkdir -p lib/modules/"$KERNEL"
+cp -a /lib/modules/"$KERNEL"/modules.dep ./lib/modules/"$KERNEL"/modules.dep
 
 # Add module options on the initramfs too
 [ -d /etc/modprobe.d ] && cp -a /etc/modprobe.d etc/modprobe.d
@@ -259,14 +259,14 @@ cp -a /lib/modules/$KERNEL/modules.dep ./lib/modules/$KERNEL/modules.dep
 # Copy scripts
 
 mkdir -p lib/eclosion/{init-top,init-bottom}
-for s in $ECLODIR/scripts/init-top/* ; do
-  cp $s lib/eclosion/init-top/${s##*/}
-  chmod +x lib/eclosion/init-top/${s##*/}
+for s in "$ECLODIR"/scripts/init-top/* ; do
+  cp "$s" lib/eclosion/init-top/"${s##*/}"
+  chmod +x lib/eclosion/init-top/"${s##*/}"
 done
 
-for s in $ECLODIR/scripts/init-bottom/* ; do
-  cp $s lib/eclosion/init-bottom/${s##*/}
-  chmod +x lib/eclosion/init-bottom/${s##*/}
+for s in "$ECLODIR"/scripts/init-bottom/* ; do
+  cp "$s" lib/eclosion/init-bottom/"${s##*/}"
+  chmod +x lib/eclosion/init-bottom/"${s##*/}"
 done
 
 if [ $CUSTOM == true ] ; then
@@ -280,9 +280,9 @@ fi
 mkdir -p etc/eclosion
 cp /etc/eclosion/eclosion.conf etc/eclosion/
 
-if [ ! -z $BANNER ] ; then
-  [ -f $BANNER ] || die "file $BANNER no found"
-  cp $BANNER etc/eclosion/banner.logo
+if [ -n "$BANNER" ] ; then
+  [ -f "$BANNER" ] || die "file $BANNER no found"
+  cp "$BANNER" etc/eclosion/banner.logo
 fi
 
 ########################################################
@@ -317,7 +317,7 @@ dmesg=
 # Load modules
 if [ -n "\$MODULES" ]; then
   for m in \$MODULES ; do
-    modprobe \$m 2>/dev/null
+    modprobe "\$m" 2>/dev/null
   done
 else
   rescueShell "No modules found"
@@ -362,7 +362,7 @@ for x in \$(cat /proc/cmdline) ; do
   esac
 done
 
-if [ -z \$BOOT ] ; then
+if [ -z "\$BOOT" ] ; then
   rescueShell "No pool defined has kernel cmdline"
 else
   # change root=ZFS=zfsforninja/ROOT/gentoo, in
@@ -404,12 +404,12 @@ fi
 # cleanup
 for dir in /run /sys /proc ; do
   echo "Unmouting \$dir"
-  umount -l \$dir
+  umount -l "\$dir"
   echo "\$?"
 done
 
 # switch
-exec switch_root /mnt/root \${INIT:-/sbin/init}
+exec switch_root /mnt/root "\${INIT:-/sbin/init}"
 
 # If the switch has fail
 rescueShell "Yaaa, it is sucks"
@@ -421,10 +421,10 @@ INITRAMFS_NAME="initramfs-$KERNEL"
 
 # Create the initramfs
 if [ $QUIET == true ] ; then
-  find . -print0 | cpio --null -ov --format=newc 2>>$LOG | gzip -9 > ../$INITRAMFS_NAME.img
-  echo "[+] Build image size $(tail -n 1 $LOG)"
+  find . -print0 | cpio --null -ov --format=newc 2>>"$LOG" | gzip -9 > ../"$INITRAMFS_NAME".img
+  echo "[+] Build image size $(tail -n 1 "$LOG")"
 else
-  find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../$INITRAMFS_NAME.img
+  find . -print0 | cpio --null -ov --format=newc | gzip -9 > ../"$INITRAMFS_NAME".img
 fi
 
 cd ..

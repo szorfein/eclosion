@@ -2,8 +2,9 @@
 
 # No reason to change keymap all times if work
 [ -f /etc/eclosion/keymaps ] || {
-  loadkeys -b -u $KEYMAP > /etc/eclosion/keymaps
-  if [ $? -eq 0 ] ; then
+  loadkeys -b -u "$KEYMAP" > /etc/eclosion/keymaps
+  res=$?
+  if [ $res -eq 0 ] ; then
     echo "[+] Add $KEYMAP to the initramfs"
   else
     die "Fail to add $KEYMAP"

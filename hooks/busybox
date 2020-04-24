@@ -1,22 +1,20 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ###############################################################
 # Build Static Busybox
 
 REBUILD=false
-[ -x $ECLODIR_STATIC/busybox ] && {
-  read -p "Do you want to rebuild busybox? [N/y] "
-  if [[ $REPLY =~ ^y|^Y ]] ; then
+[ -x "$ECLODIR_STATIC"/busybox ] && {
+  printf "Do you want to rebuild busybox? [N/y] " ; read -r
+  if echo "$REPLY" | grep -qP "^y|^Y" ; then
     REBUILD=true
-  else
-    echo "echo ok"
   fi
 }
 
-source /etc/portage/make.conf
+. /etc/portage/make.conf
 
 BUSYBOX_BIN=$WORKDIR/bin/busybox
-if [ ! -x $ECLODIR_STATIC/busybox ] || $REBUILD ; then
+if [ ! -x "$ECLODIR_STATIC"/busybox ] || $REBUILD ; then
   REPO=/var/db/repos/gentoo
   PKG=sys-apps/busybox
   #BUSYBOX_EBUILD=$(ls /usr/portage/$PKG/*.ebuild | head -n 1)
@@ -26,37 +24,38 @@ if [ ! -x $ECLODIR_STATIC/busybox ] || $REBUILD ; then
   echo "[+] Building $BUSYBOX_EBUILD, plz wait ..."
   #USE="-pam static" ebuild /usr/portage/$PKG/$BUSYBOX_EBUILD clean unpack compile
   #USE="-pam static" ebuild $REPO/$PKG/$BUSYBOX_EBUILD clean unpack compile
-  USE="-pam static" ebuild $REPO/$PKG/$BUSYBOX_EBUILD.ebuild clean unpack compile
-  if [ $? -ne 0 ] ; then
+  USE="-pam static" ebuild $REPO/$PKG/"$BUSYBOX_EBUILD".ebuild clean unpack compile
+  res=$?
+  if [ $res -ne 0 ] ; then
     echo "[-] Failed to build $BUSYBOX_EBUILD"
     exit 1
   fi
   #(cp /var/tmp/portage/${PKG%/*}/${BUSYBOX_EBUILD%.*}/work/${BUSYBOX_EBUILD%.*}/busybox $ECLODIR_STATIC/busybox)
   cp /var/tmp/portage/sys-apps/busybox-*/work/busybox-*/busybox $ECLODIR_STATIC/busybox
-  ebuild $REPO/$PKG/$BUSYBOX_EBUILD.ebuild clean
-elif ldd $ECLODIR_STATIC/busybox &>2 >/dev/null ; then
+  ebuild $REPO/$PKG/"$BUSYBOX_EBUILD".ebuild clean
+elif ldd $ECLODIR_STATIC/busybox >/dev/null 2>&1 ; then
   echo "[-] Busybox is not static"
   exit 1
 fi
 
-cp -a $ECLODIR_STATIC/busybox $BUSYBOX_BIN
-BUSY_BIN=$(type -p $BUSYBOX_BIN)
+cp -a "$ECLODIR_STATIC"/busybox "$BUSYBOX_BIN"
+BUSY_BIN=$(type $BUSYBOX_BIN)
 BUSY_APPS=/tmp/busybox-apps
 $BUSY_BIN --list-full > $BUSY_APPS
 
 # Remove some links from $BUSY_APPS
 for l in busybox blkid sha1sum sha3sum ssl_client su \
   telnet raidautorun adduser addgroup acpid ; do
-  eval sed -i '/$l/d' $BUSY_APPS
+  eval sed -i /$l/d $BUSY_APPS
 done
 
 ###############################################################
 # Create links
 
 for bin in $(grep -e '^bin/[a-z]' $BUSY_APPS) ; do
-  ln -s busybox $bin 
+  ln -s busybox "$bin"
 done
 
 for sbin in $(grep -e '^sbin/[a-z]' $BUSY_APPS) ; do
-  ln -s ../bin/busybox $sbin
+  ln -s ../bin/busybox "$sbin"
 done

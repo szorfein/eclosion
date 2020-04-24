@@ -13,16 +13,16 @@ mkdir -p $USB_MOUNTPOINT
 
 gpg -qd $PATH_KEY | cryptsetup -v --key-file=- open --type luks $CRYPTBOOT_DEV cryptboot
 
-[[ ! -b /dev/mapper/cryptboot ]] && rescueShell "Fail to open cryptboot"
+[ -b /dev/mapper/cryptboot ] || rescueShell "Fail to open cryptboot"
 
 mount -t ext4 /dev/mapper/cryptboot $USB_MOUNTPOINT
 
 gpg -qd $PATH_KEY | cryptsetup -v --key-file=- open --type luks $USB_MOUNTPOINT/key.img lukskey
 
-[[ ! -b /dev/mapper/lukskey ]] && rescueShell "Fail to open lukskey"
+[ -b /dev/mapper/lukskey ] || rescueShell "Fail to open lukskey"
 
 cryptsetup -v --header $USB_MOUNTPOINT/header.img --key-file=/dev/mapper/lukskey --keyfile-offset=$KEY_OFFSET --keyfile-size=$KEY_SIZE open --type luks $ZPOOL_DEV zfs-enc
 
-[[ ! -b /dev/mapper/zfs-enc ]] && rescueShell "Fail to open zfs-enc"
+[ -b /dev/mapper/zfs-enc ] || rescueShell "Fail to open zfs-enc"
 
 cryptsetup close lukskey

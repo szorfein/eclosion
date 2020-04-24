@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 ########################################################
 # Mdev Setup
@@ -46,9 +46,9 @@ EOF
 
 mkdir -p lib/mdev
 cp /lib/mdev/ide_links lib/mdev/
-if [ ! -f $ECLODIR_STATIC/storage-device ] ; then
-  wget -P $ECLODIR_STATIC/ https://raw.githubusercontent.com/slashbeast/mdev-like-a-boss/master/helpers/storage-device
-  chmod +x $ECLODIR_STATIC/storage-device
+if [ ! -f "$ECLODIR_STATIC"/storage-device ] ; then
+  wget -P "$ECLODIR_STATIC"/ https://raw.githubusercontent.com/slashbeast/mdev-like-a-boss/master/helpers/storage-device
+  chmod +x "$ECLODIR_STATIC"/storage-device
 fi
 
-cp -a $ECLODIR_STATIC/storage-device lib/mdev/
+cp -a "$ECLODIR_STATIC"/storage-device lib/mdev/

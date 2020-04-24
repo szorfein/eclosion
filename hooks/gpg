@@ -1,12 +1,13 @@
-#!/bin/sh
+#!/usr/bin/env sh
 
 mkdir -p usr/share/gnupg root/.gnupg usr/bin
 
-bins+=" gpg gpg-agent gpgconf gpg-connect-agent pinentry-curses"
-modules+=" cast5"
+bins="${bins} gpg gpg-agent gpgconf gpg-connect-agent pinentry-curses"
+modules="${modules} cast5"
 
 # Make the link of pinentry
-cd usr/bin && ln -s pinentry-curses pinentry && cd $WORKDIR
+cd usr/bin && ln -s pinentry-curses pinentry
+cd "$WORKDIR" || exit 1
 
 # Configure the agent
 cat > root/.gnupg/gpg.conf << EOF
