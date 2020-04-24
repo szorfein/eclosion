@@ -4,4 +4,4 @@ mount -t tmpfs -o exec,mode=755 tmpfs /dev
 echo >/dev/mdev.seq
 [ -x /sbin/mdev ] && MDEV=/sbin/mdev || MDEV="/bin/busybox mdev"
 mdev -s
-echo $MDEV > /proc/sys/kernel/hotplug
+echo "$MDEV" > /proc/sys/kernel/hotplug

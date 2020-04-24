@@ -20,34 +20,34 @@ waiting_disk() {
   time=20
   i=1
   while [ $i -le $time ] ; do
-    if findfs $1 >/dev/null 2>&1 ; then
+    if findfs "$1" >/dev/null 2>&1 ; then
       break
-    elif [ -f $1 ] ; then
+    elif [ -f "$1" ] ; then
       break
     fi
-    i=$(($i+1))
+    i=$(( i + 1 ))
     sleep 1
   done
   [ $i -ge $time ] && echo "no found :("
-  i= time=
+  i='' time=''
 }
 
 # args: 1 path key , 2 device (UUID, PATH) , 3 map name
 gpg_with_luks() {
   GPG_OPTS="--homedir $gpghome --no-mdc-warning --skip-verify --quiet --logger-file /dev/null --pinentry-mode loopback"
 
-  [ -f $1 ] || echo "gpg key $1 no found..."
-  waiting_disk $2
+  [ -f "$1" ] || echo "gpg key $1 no found..."
+  waiting_disk "$2"
   #if ! findfs $2 >/dev/null ; then die "device $2 no found" ; fi
 
   { flock -s 9;
     i=1
     while [ $i -le 3 ] ; do
-      gpg $GPG_OPTS -d $1 | cryptsetup --key-file=- open --type luks $2 $3
+      gpg "$GPG_OPTS" -d "$1" | cryptsetup --key-file=- open --type luks "$2" "$3"
       ret=$?
-      [ $ret -eq 0 -o $ret -eq 5 ] && break
+      [ $ret -eq 0 ] || [ $ret -eq 5 ] && break
       [ $ret -eq 1 ] && echo "Bad password"
-      i=$(($i+1))
+      i=$(( i + 1 ))
       GNUPGHOME="$gpghome" gpg-connect-agent 1>/dev/null reloadagent /bye
     done
   } 9>failure_lock
