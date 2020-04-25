@@ -11,7 +11,7 @@ KEY_SIZE=8192
 
 mkdir -p $USB_MOUNTPOINT
 
-gpg_with_luks $PATH_KEY $CRYPTBOOT cryptboot
+gpg_with_luks $PATH_KEY "$CRYPTBOOT" cryptboot
 
 [ -b /dev/mapper/cryptboot ] || rescueShell "Fail to open cryptboot"
 
@@ -28,3 +28,4 @@ cryptsetup -v --header $USB_MOUNTPOINT/header.img --key-file=/dev/mapper/lukskey
 [ -b /dev/mapper/zfs-enc ] || rescueShell "Fail to open zfs-enc"
 
 cryptsetup close lukskey
+# cryptsetup close cryptboot

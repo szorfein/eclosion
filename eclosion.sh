@@ -227,12 +227,12 @@ fi
 
 gcc_version=$(gcc --version | head -n 1 | awk '{print $6}')
 
-if search_lib=$(find /usr/lib* -type f -name libgcc_s.so.1 | grep "$gcc_version/lib") ; then
+# we use the gcc_version to exclude the version in 32 bit if any
+if search_lib=$(find /usr/lib/ -type f -name libgcc_s.so.1 | grep "$gcc_version/lib") ; then
   bin+=" $search_lib"
   cp "$search_lib" usr/lib64/libgcc_s.so.1
 else
-  echo "[-] libgcc_s.so.1 no found on the system..."
-  exit 1
+  die "libgcc_s.so.1 no found on the system..."
 fi
 
 ########################################################
